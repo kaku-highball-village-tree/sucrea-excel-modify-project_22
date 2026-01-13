@@ -3940,6 +3940,7 @@ def create_cumulative_reports(pszPlPath: str) -> None:
     objMonths = build_month_sequence(objStart, objEnd)
     for objMonth in objMonths:
         create_pj_summary(pszPlPath, (objMonth, objMonth))
+    try_create_cp_step0009_vertical(pszDirectory)
 
 
 def copy_cp_step0005_vertical_files(pszDirectory: str, objPaths: List[Optional[str]]) -> None:
@@ -4302,6 +4303,161 @@ def try_create_cp_group_step0008_vertical(pszStep0007Path: str) -> Optional[str]
         pszPeriodLabel,
         pszTimeLabel,
     )
+
+
+def build_cp_company_step0008_single_path(
+    pszDirectory: str,
+    objMonth: Tuple[int, int],
+    pszPrefix: str,
+) -> str:
+    iYear, iMonth = objMonth
+    pszMonth = f"{iMonth:02d}"
+    return os.path.join(
+        pszDirectory,
+        f"{pszPrefix}_CP別_step0008_単月_損益計算書_{iYear}年{pszMonth}月_計上カンパニー_vertical.tsv",
+    )
+
+
+def build_cp_company_step0008_cumulative_path(
+    pszDirectory: str,
+    objRange: Tuple[Tuple[int, int], Tuple[int, int]],
+    pszPrefix: str,
+) -> str:
+    (iStartYear, iStartMonth), (iEndYear, iEndMonth) = objRange
+    pszStartMonth = f"{iStartMonth:02d}"
+    pszEndMonth = f"{iEndMonth:02d}"
+    return os.path.join(
+        pszDirectory,
+        (
+            f"{pszPrefix}_CP別_step0008_累計_損益計算書_"
+            f"{iStartYear}年{pszStartMonth}月-{iEndYear}年{pszEndMonth}月_"
+            "計上カンパニー_vertical.tsv"
+        ),
+    )
+
+
+def build_cp_company_step0009_cumulative_path(
+    pszDirectory: str,
+    objRange: Tuple[Tuple[int, int], Tuple[int, int]],
+) -> str:
+    (iStartYear, iStartMonth), (iEndYear, iEndMonth) = objRange
+    pszStartMonth = f"{iStartMonth:02d}"
+    pszEndMonth = f"{iEndMonth:02d}"
+    return os.path.join(
+        pszDirectory,
+        (
+            "0002_CP別_step0009_累計_損益計算書_"
+            f"{iStartYear}年{pszStartMonth}月-{iEndYear}年{pszEndMonth}月_"
+            "計上カンパニー_vertical.tsv"
+        ),
+    )
+
+
+def append_vertical_columns(
+    objBaseRows: List[List[str]],
+    objAppendRows: List[List[str]],
+) -> List[List[str]]:
+    if not objBaseRows:
+        return [list(objRow) for objRow in objAppendRows]
+    iAppendColumnCount: int = max((len(objRow) for objRow in objAppendRows), default=1) - 1
+    if iAppendColumnCount < 0:
+        iAppendColumnCount = 0
+
+    objOutputRows: List[List[str]] = []
+    for iRowIndex, objRow in enumerate(objBaseRows):
+        objAppendRow: List[str] = (
+            objAppendRows[iRowIndex] if iRowIndex < len(objAppendRows) else []
+        )
+        objAppendValues = list(objAppendRow[1:]) if objAppendRow else []
+        if len(objAppendValues) < iAppendColumnCount:
+            objAppendValues.extend([""] * (iAppendColumnCount - len(objAppendValues)))
+        if not objRow:
+            objOutputRows.append([""] * (len(objRow) + iAppendColumnCount))
+            continue
+        objOutputRows.append(list(objRow) + objAppendValues)
+    return objOutputRows
+
+
+def build_cp_step0009_vertical_for_range(
+    pszDirectory: str,
+    objRange: Tuple[Tuple[int, int], Tuple[int, int]],
+) -> Optional[str]:
+    pszCumulativePath = build_cp_company_step0008_cumulative_path(
+        pszDirectory,
+        objRange,
+        "0002",
+    )
+    if not os.path.isfile(pszCumulativePath):
+        return None
+    objOutputRows: List[List[str]] = read_tsv_rows(pszCumulativePath)
+    objMonths = build_month_sequence(objRange[0], objRange[1])
+    for objMonth in objMonths:
+        pszSinglePath = build_cp_company_step0008_single_path(
+            pszDirectory,
+            objMonth,
+            "0002",
+        )
+        if not os.path.isfile(pszSinglePath):
+            return None
+        objSingleRows = read_tsv_rows(pszSinglePath)
+        objOutputRows = append_vertical_columns(objOutputRows, objSingleRows)
+
+    pszOutputPath = build_cp_company_step0009_cumulative_path(pszDirectory, objRange)
+    write_tsv_rows(pszOutputPath, objOutputRows)
+
+    pszScriptDirectory: str = os.path.dirname(__file__)
+    pszTargetDirectory: str = os.path.join(pszScriptDirectory, "0002_CP別_step0009")
+    os.makedirs(pszTargetDirectory, exist_ok=True)
+    pszTargetPath: str = os.path.join(pszTargetDirectory, os.path.basename(pszOutputPath))
+    shutil.copy2(pszOutputPath, pszTargetPath)
+    return pszOutputPath
+
+
+def try_create_cp_step0009_vertical(pszDirectory: str) -> None:
+    pszRangePath: Optional[str] = find_selected_range_path(pszDirectory)
+    if pszRangePath is None:
+        return
+    objRange = parse_selected_range(pszRangePath)
+    if objRange is None:
+        return
+
+    objStart, objEnd = objRange
+    objRangeMonths = build_month_sequence(objStart, objEnd)
+    for objMonth in objRangeMonths:
+        pszCompanySinglePath = build_cp_company_step0008_single_path(
+            pszDirectory,
+            objMonth,
+            "0001",
+        )
+        if not os.path.isfile(pszCompanySinglePath):
+            return
+
+    objTargetRanges: List[Tuple[Tuple[int, int], Tuple[int, int]]] = [objRange]
+    objFiscalBRanges = split_by_fiscal_boundary(objStart, objEnd, 8)
+    if objFiscalBRanges:
+        objLastRange = objFiscalBRanges[-1]
+        if objLastRange != objRange:
+            objTargetRanges.append(objLastRange)
+
+    for objRangeItem in objTargetRanges:
+        pszCumulativePath = build_cp_company_step0008_cumulative_path(
+            pszDirectory,
+            objRangeItem,
+            "0001",
+        )
+        if not os.path.isfile(pszCumulativePath):
+            return
+        for objMonth in build_month_sequence(objRangeItem[0], objRangeItem[1]):
+            pszSinglePath = build_cp_company_step0008_single_path(
+                pszDirectory,
+                objMonth,
+                "0001",
+            )
+            if not os.path.isfile(pszSinglePath):
+                return
+
+    for objRangeItem in objTargetRanges:
+        build_cp_step0009_vertical_for_range(pszDirectory, objRangeItem)
 
 
 def create_cp_step0007_file_company(pszStep0006Path: str, pszPrefix: str) -> None:
