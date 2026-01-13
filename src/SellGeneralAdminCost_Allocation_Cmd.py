@@ -4443,7 +4443,7 @@ def try_create_cp_step0009_vertical(pszDirectory: str) -> None:
         pszCumulativePath = build_cp_company_step0008_cumulative_path(
             pszDirectory,
             objRangeItem,
-            "0002",
+            "0001",
         )
         if not os.path.isfile(pszCumulativePath):
             return
@@ -4451,7 +4451,7 @@ def try_create_cp_step0009_vertical(pszDirectory: str) -> None:
             pszSinglePath = build_cp_company_step0008_single_path(
                 pszDirectory,
                 objMonth,
-                "0002",
+                "0001",
             )
             if not os.path.isfile(pszSinglePath):
                 return
