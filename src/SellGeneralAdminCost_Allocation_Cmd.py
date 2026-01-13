@@ -4422,39 +4422,12 @@ def try_create_cp_step0009_vertical(pszDirectory: str) -> None:
         return
 
     objStart, objEnd = objRange
-    objRangeMonths = build_month_sequence(objStart, objEnd)
-    for objMonth in objRangeMonths:
-        pszCompanySinglePath = build_cp_company_step0008_single_path(
-            pszDirectory,
-            objMonth,
-            "0001",
-        )
-        if not os.path.isfile(pszCompanySinglePath):
-            return
-
     objTargetRanges: List[Tuple[Tuple[int, int], Tuple[int, int]]] = [objRange]
     objFiscalBRanges = split_by_fiscal_boundary(objStart, objEnd, 8)
     if objFiscalBRanges:
         objLastRange = objFiscalBRanges[-1]
         if objLastRange != objRange:
             objTargetRanges.append(objLastRange)
-
-    for objRangeItem in objTargetRanges:
-        pszCumulativePath = build_cp_company_step0008_cumulative_path(
-            pszDirectory,
-            objRangeItem,
-            "0001",
-        )
-        if not os.path.isfile(pszCumulativePath):
-            return
-        for objMonth in build_month_sequence(objRangeItem[0], objRangeItem[1]):
-            pszSinglePath = build_cp_company_step0008_single_path(
-                pszDirectory,
-                objMonth,
-                "0001",
-            )
-            if not os.path.isfile(pszSinglePath):
-                return
 
     for objRangeItem in objTargetRanges:
         build_cp_step0009_vertical_for_range(pszDirectory, objRangeItem)
