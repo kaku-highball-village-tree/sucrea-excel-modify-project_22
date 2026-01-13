@@ -4363,28 +4363,17 @@ def append_vertical_columns(
     if iAppendColumnCount < 0:
         iAppendColumnCount = 0
 
-    objAppendMap: Dict[str, List[str]] = {}
-    for objRow in objAppendRows:
-        if not objRow:
-            continue
-        pszKey = objRow[0]
-        if pszKey in objAppendMap:
-            continue
-        objAppendMap[pszKey] = objRow
-
     objOutputRows: List[List[str]] = []
-    for objRow in objBaseRows:
+    for iRowIndex, objRow in enumerate(objBaseRows):
+        objAppendRow: List[str] = (
+            objAppendRows[iRowIndex] if iRowIndex < len(objAppendRows) else []
+        )
+        objAppendValues = list(objAppendRow[1:]) if objAppendRow else []
+        if len(objAppendValues) < iAppendColumnCount:
+            objAppendValues.extend([""] * (iAppendColumnCount - len(objAppendValues)))
         if not objRow:
             objOutputRows.append([""] * (len(objRow) + iAppendColumnCount))
             continue
-        pszKey = objRow[0]
-        objAppendRow = objAppendMap.get(pszKey)
-        if objAppendRow is None:
-            objAppendValues = [""] * iAppendColumnCount
-        else:
-            objAppendValues = list(objAppendRow[1:])
-            if len(objAppendValues) < iAppendColumnCount:
-                objAppendValues.extend([""] * (iAppendColumnCount - len(objAppendValues)))
         objOutputRows.append(list(objRow) + objAppendValues)
     return objOutputRows
 
