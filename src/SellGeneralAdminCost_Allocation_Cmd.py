@@ -4385,18 +4385,6 @@ def build_cp_company_step0009_cumulative_path(
     )
 
 
-def build_cp_group_step0009_single_path(
-    pszDirectory: str,
-    objMonth: Tuple[int, int],
-) -> str:
-    iYear, iMonth = objMonth
-    pszMonth = f"{iMonth:02d}"
-    return os.path.join(
-        pszDirectory,
-        f"0002_CP別_step0009_単月_損益計算書_{iYear}年{pszMonth}月_計上グループ_vertical.tsv",
-    )
-
-
 def build_cp_company_step0009_single_path(
     pszDirectory: str,
     objMonth: Tuple[int, int],
@@ -4464,23 +4452,6 @@ def build_cp_company_step0009_single_for_month(
         return None
     objRows = read_tsv_rows(pszInputPath)
     pszOutputPath = build_cp_company_step0009_single_path(pszDirectory, objMonth)
-    write_tsv_rows(pszOutputPath, objRows)
-    return pszOutputPath
-
-
-def build_cp_group_step0009_single_for_month(
-    pszDirectory: str,
-    objMonth: Tuple[int, int],
-) -> Optional[str]:
-    pszInputPath = build_cp_group_step0008_single_path(
-        pszDirectory,
-        objMonth,
-        "0002",
-    )
-    if not os.path.isfile(pszInputPath):
-        return None
-    objRows = read_tsv_rows(pszInputPath)
-    pszOutputPath = build_cp_group_step0009_single_path(pszDirectory, objMonth)
     write_tsv_rows(pszOutputPath, objRows)
     return pszOutputPath
 
@@ -4591,15 +4562,6 @@ def try_create_cp_group_step0009_vertical(pszDirectory: str) -> None:
         if objLastRange != objRange:
             objTargetRanges.append(objLastRange)
 
-    for objMonth in build_month_sequence(objStart, objEnd):
-        pszSingleGroupPath = build_cp_group_step0008_single_path(
-            pszDirectory,
-            objMonth,
-            "0001",
-        )
-        if not os.path.isfile(pszSingleGroupPath):
-            return
-
     for objRangeItem in objTargetRanges:
         pszCumulativePath = build_cp_group_step0008_cumulative_path(
             pszDirectory,
@@ -4608,9 +4570,6 @@ def try_create_cp_group_step0009_vertical(pszDirectory: str) -> None:
         )
         if not os.path.isfile(pszCumulativePath):
             return
-
-    for objMonth in build_month_sequence(objStart, objEnd):
-        build_cp_group_step0009_single_for_month(pszDirectory, objMonth)
 
     for objRangeItem in objTargetRanges:
         build_cp_group_step0009_vertical_for_range(pszDirectory, objRangeItem)
