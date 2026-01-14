@@ -4346,7 +4346,7 @@ def build_cp_company_step0009_cumulative_path(
     return os.path.join(
         pszDirectory,
         (
-            "0002_CP別_step0009_累計_損益計算書_"
+            "0001_CP別_step0009_累計_損益計算書_"
             f"{iStartYear}年{pszStartMonth}月-{iEndYear}年{pszEndMonth}月_"
             "計上カンパニー_vertical.tsv"
         ),
@@ -4385,7 +4385,7 @@ def build_cp_step0009_vertical_for_range(
     pszCumulativePath = build_cp_company_step0008_cumulative_path(
         pszDirectory,
         objRange,
-        "0002",
+        "0001",
     )
     if not os.path.isfile(pszCumulativePath):
         return None
@@ -4395,7 +4395,7 @@ def build_cp_step0009_vertical_for_range(
         pszSinglePath = build_cp_company_step0008_single_path(
             pszDirectory,
             objMonth,
-            "0002",
+            "0001",
         )
         if not os.path.isfile(pszSinglePath):
             return None
@@ -4406,7 +4406,7 @@ def build_cp_step0009_vertical_for_range(
     write_tsv_rows(pszOutputPath, objOutputRows)
 
     pszScriptDirectory: str = os.path.dirname(__file__)
-    pszTargetDirectory: str = os.path.join(pszScriptDirectory, "0002_CP別_step0009")
+    pszTargetDirectory: str = os.path.join(pszScriptDirectory, "0001_CP別_step0009")
     os.makedirs(pszTargetDirectory, exist_ok=True)
     pszTargetPath: str = os.path.join(pszTargetDirectory, os.path.basename(pszOutputPath))
     shutil.copy2(pszOutputPath, pszTargetPath)
