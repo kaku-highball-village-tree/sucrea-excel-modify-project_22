@@ -4595,7 +4595,7 @@ def create_cp_step0007_file_company(pszStep0006Path: str, pszPrefix: str) -> Non
         iYear = int(objSingleMatch.group(1))
         iMonth = int(objSingleMatch.group(2))
         pszCompany = objSingleMatch.group(3)
-        pszPriorLabel = f"去年の{iMonth:02d}月"
+        pszPriorLabel = f"{iYear - 1}年{iMonth:02d}月"
         pszCurrentLabel = f"{iYear}年{iMonth:02d}月"
         iPriorYear = iYear - 1
         pszPriorPath = os.path.join(
