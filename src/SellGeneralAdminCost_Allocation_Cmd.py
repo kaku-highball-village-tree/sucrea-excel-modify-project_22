@@ -4129,7 +4129,7 @@ def build_step0007_rows_for_cp(
         if pszLabel in objPriorMap:
             objRow[1] = objPriorMap[pszLabel]
         else:
-            objRow[1] = "0.0" if pszLabel.endswith("率") else "0"
+            objRow[1] = "'－"
     return objInsertedRows
 
 
