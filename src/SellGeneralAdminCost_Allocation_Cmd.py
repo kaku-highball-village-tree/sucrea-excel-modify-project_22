@@ -4025,7 +4025,7 @@ def build_company_step0006_files(
         return []
     objCompanyIndices: List[Tuple[int, str]] = []
     for iColumnIndex, pszName in enumerate(objHeader[1:], start=1):
-        if pszName == "" or pszName == "合計":
+        if pszName == "":
             continue
         objCompanyIndices.append((iColumnIndex, pszName))
 
