@@ -4449,6 +4449,19 @@ def find_cp_group_step0009_vertical_paths(
     return objMatches
 
 
+def parse_tsv_value_for_excel(pszValue: str) -> Optional[object]:
+    pszText: str = (pszValue or "").strip()
+    if pszText == "":
+        return None
+    if pszText == "'－":
+        return "－"
+    if re.fullmatch(r"-?\d+", pszText):
+        return int(pszText)
+    if re.fullmatch(r"-?\d+\.\d+", pszText):
+        return float(pszText)
+    return pszText
+
+
 def create_cp_group_step0009_excel(pszScriptDirectory: str) -> Optional[str]:
     pszTargetDirectory: str = os.path.join(pszScriptDirectory, "0002_CP別_step0009")
     if not os.path.isdir(pszTargetDirectory):
@@ -4474,10 +4487,11 @@ def create_cp_group_step0009_excel(pszScriptDirectory: str) -> Optional[str]:
         objRows = read_tsv_rows(pszInputPath)
         for iRowIndex, objRow in enumerate(objRows, start=1):
             for iColumnIndex, pszValue in enumerate(objRow, start=1):
+                objCellValue = parse_tsv_value_for_excel(pszValue)
                 objSheet.cell(
                     row=iRowIndex,
                     column=iColumnIndex,
-                    value=pszValue if pszValue != "" else None,
+                    value=objCellValue,
                 )
     if objTemplateSheet in objWorkbook.worksheets:
         objWorkbook.remove(objTemplateSheet)
