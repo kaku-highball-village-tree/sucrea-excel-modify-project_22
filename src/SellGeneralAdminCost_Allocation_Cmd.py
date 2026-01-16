@@ -4189,6 +4189,7 @@ def build_cp_group_step0008_vertical(
         "受託事業-その他",
         "自社-施設運営",
         "自社-その他",
+        "合計",
     ]
     pszPrefix: str = (
         f"0002_CP別_step0007_{pszPeriodLabel}_損益計算書_{pszTimeLabel}_"
