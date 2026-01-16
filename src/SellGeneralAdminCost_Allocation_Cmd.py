@@ -4218,6 +4218,7 @@ def build_cp_company_step0008_vertical(
         "子会社",
         "投資先",
         "本部",
+        "合計",
     ]
     pszPrefix: str = (
         f"0001_CP別_step0007_{pszPeriodLabel}_損益計算書_{pszTimeLabel}_"
