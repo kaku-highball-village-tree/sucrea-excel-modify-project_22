@@ -27,6 +27,7 @@ import re
 import sys
 from decimal import Decimal, ROUND_HALF_UP
 from typing import Dict, List, Optional, Tuple
+from openpyxl import load_workbook
 
 
 def print_usage() -> None:
@@ -4303,16 +4304,14 @@ def try_create_cp_group_step0008_vertical(pszStep0007Path: str) -> Optional[str]
     pszPeriodLabel: str = objMatch.group(1)
     pszTimeLabel: str = objMatch.group(2)
     pszGroupLabel: str = objMatch.group(3)
-    objTriggerGroup: str = "受託事業-施設運営"
     objAllowedGroups: set[str] = {
         "受託事業-施設運営",
         "受託事業-その他",
         "自社-施設運営",
         "自社-その他",
+        "合計",
     }
     if pszGroupLabel not in objAllowedGroups:
-        return None
-    if pszGroupLabel != objTriggerGroup:
         return None
     pszDirectory: str = os.path.dirname(pszStep0007Path)
     return build_cp_group_step0008_vertical(
@@ -4428,6 +4427,81 @@ def build_cp_group_step0009_cumulative_path(
             "計上グループ_vertical.tsv"
         ),
     )
+
+
+def find_cp_group_step0009_vertical_paths(
+    pszDirectory: str,
+) -> List[Tuple[str, str]]:
+    objMatches: List[Tuple[str, str]] = []
+    for pszFileName in os.listdir(pszDirectory):
+        objMatch = re.match(
+            (
+                r"0002_CP別_step0009_累計_損益計算書_"
+                r"(\d{4}年\d{2}月-\d{4}年\d{2}月)_計上グループ_vertical\.tsv"
+            ),
+            pszFileName,
+        )
+        if objMatch is None:
+            continue
+        pszPeriodLabel: str = objMatch.group(1)
+        objMatches.append((pszPeriodLabel, os.path.join(pszDirectory, pszFileName)))
+    objMatches.sort(key=lambda objItem: objItem[0])
+    return objMatches
+
+
+def parse_tsv_value_for_excel(pszValue: str) -> Optional[object]:
+    pszText: str = (pszValue or "").strip()
+    if pszText == "":
+        return None
+    if pszText == "'－":
+        return "－"
+    if re.fullmatch(r"-?\d+", pszText):
+        return int(pszText)
+    if re.fullmatch(r"-?\d+\.\d+", pszText):
+        return float(pszText)
+    return pszText
+
+
+def create_cp_group_step0009_excel(pszScriptDirectory: str) -> Optional[str]:
+    pszTargetDirectory: str = os.path.join(pszScriptDirectory, "0002_CP別_step0009")
+    if not os.path.isdir(pszTargetDirectory):
+        return None
+    objTsvPaths = find_cp_group_step0009_vertical_paths(pszTargetDirectory)
+    if not objTsvPaths:
+        return None
+
+    pszTemplatePath: str = os.path.join(
+        pszScriptDirectory,
+        "TEMPLATE_CP別経営管理_計上グループ_累計.xlsx",
+    )
+    if not os.path.isfile(pszTemplatePath):
+        return None
+
+    objWorkbook = load_workbook(pszTemplatePath)
+    objTemplateSheet = objWorkbook.worksheets[0]
+    for pszPeriodLabel, pszInputPath in objTsvPaths:
+        if pszPeriodLabel in objWorkbook.sheetnames:
+            objWorkbook.remove(objWorkbook[pszPeriodLabel])
+        objSheet = objWorkbook.copy_worksheet(objTemplateSheet)
+        objSheet.title = pszPeriodLabel
+        objRows = read_tsv_rows(pszInputPath)
+        for iRowIndex, objRow in enumerate(objRows, start=1):
+            for iColumnIndex, pszValue in enumerate(objRow, start=1):
+                objCellValue = parse_tsv_value_for_excel(pszValue)
+                objSheet.cell(
+                    row=iRowIndex,
+                    column=iColumnIndex,
+                    value=objCellValue,
+                )
+    if objTemplateSheet in objWorkbook.worksheets:
+        objWorkbook.remove(objTemplateSheet)
+
+    pszOutputPath: str = os.path.join(
+        pszTargetDirectory,
+        "CP別経営管理_計上グループ_累計.xlsx",
+    )
+    objWorkbook.save(pszOutputPath)
+    return pszOutputPath
 
 
 def append_vertical_columns(
@@ -4589,6 +4663,7 @@ def try_create_cp_group_step0009_vertical(pszDirectory: str) -> None:
 
     for objRangeItem in objTargetRanges:
         build_cp_group_step0009_vertical_for_range(pszDirectory, objRangeItem)
+    create_cp_group_step0009_excel(os.path.dirname(__file__))
 
 
 def create_cp_step0007_file_company(pszStep0006Path: str, pszPrefix: str) -> None:
