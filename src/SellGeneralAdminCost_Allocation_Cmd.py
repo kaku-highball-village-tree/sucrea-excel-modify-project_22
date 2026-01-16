@@ -4458,7 +4458,7 @@ def create_cp_group_step0009_excel(pszScriptDirectory: str) -> Optional[str]:
         return None
 
     pszTemplatePath: str = os.path.join(
-        pszTargetDirectory,
+        pszScriptDirectory,
         "TEMPLATE_CP別経営管理_計上グループ_累計.xlsx",
     )
     if not os.path.isfile(pszTemplatePath):
