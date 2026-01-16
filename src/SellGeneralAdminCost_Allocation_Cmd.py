@@ -4127,7 +4127,20 @@ def build_step0007_rows_for_cp(
         if not pszLabel:
             continue
         if pszLabel in objPriorMap:
-            objRow[1] = objPriorMap[pszLabel]
+            pszPriorValue = objPriorMap[pszLabel]
+            pszTrimmedPriorValue = (pszPriorValue or "").strip()
+            if pszTrimmedPriorValue == "":
+                objRow[1] = pszPriorValue
+            else:
+                try:
+                    fPriorValue = float(pszTrimmedPriorValue)
+                except ValueError:
+                    objRow[1] = pszPriorValue
+                else:
+                    if abs(fPriorValue) < 0.0000001:
+                        objRow[1] = "'－"
+                    else:
+                        objRow[1] = pszPriorValue
         else:
             objRow[1] = "'－"
     return objInsertedRows
