@@ -4266,6 +4266,7 @@ def try_create_cp_company_step0008_vertical(pszStep0007Path: str) -> Optional[st
         "子会社",
         "投資先",
         "本部",
+        "合計",
     }
     if pszCompanyLabel not in objAllowedCompanies:
         return None
