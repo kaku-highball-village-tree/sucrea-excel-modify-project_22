@@ -531,25 +531,11 @@ def allocate_company_sg_admin_cost(objRows: List[List[str]]) -> List[List[str]]:
     return objOutputRows
 
 
-def _parse_excel_cell_value(pszText: str) -> object:
-    pszValue: str = (pszText or "").strip()
-    if pszValue == "":
-        return ""
-    if pszValue == "－":
-        return pszValue
-    pszNormalized: str = pszValue.replace(",", "")
-    if re.match(r"^-?\d+(\.\d+)?$", pszNormalized):
-        try:
-            return Decimal(pszNormalized)
-        except Exception:
-            return pszValue
-    return pszValue
-
-
 def _build_pj_summary_group_total_paths() -> Tuple[str, str]:
     pszScriptDirectory: str = os.path.dirname(os.path.abspath(__file__))
     pszTemplatePath: str = os.path.join(
         pszScriptDirectory,
+        "PJサマリ",
         "TEMPLATE_PJサマリ_グループ別合計.xlsx",
     )
     pszOutputPath: str = os.path.join(
@@ -574,49 +560,21 @@ def insert_step0006_rows_into_group_summary_excel(
     objEnd: Tuple[int, int],
 ) -> None:
     pszTemplatePath, pszOutputPath = _build_pj_summary_group_total_paths()
-    objTemplateWorkbook = load_workbook(pszTemplatePath)
-    objTemplateSheet = objTemplateWorkbook.worksheets[0]
+    pszSheetName: str = _build_pj_summary_group_sheet_name(objStart, objEnd)
+    if not os.path.isfile(pszTemplatePath):
+        return
     if os.path.isfile(pszOutputPath):
         objWorkbook = load_workbook(pszOutputPath)
     else:
         objWorkbook = load_workbook(pszTemplatePath)
-
-    pszSheetName: str = _build_pj_summary_group_sheet_name(objStart, objEnd)
-    if pszSheetName in objWorkbook.sheetnames:
-        objSheet = objWorkbook[pszSheetName]
-        for objRow in objSheet.iter_rows():
-            for objCell in objRow:
-                objCell.value = None
-    else:
-        objSheet = objWorkbook.create_sheet(title=pszSheetName)
-        for objColumnDimension, objColumn in objTemplateSheet.column_dimensions.items():
-            objSheet.column_dimensions[objColumnDimension].width = objColumn.width
-            objSheet.column_dimensions[objColumnDimension].hidden = objColumn.hidden
-        for objRowDimension, objRow in objTemplateSheet.row_dimensions.items():
-            objSheet.row_dimensions[objRowDimension].height = objRow.height
-            objSheet.row_dimensions[objRowDimension].hidden = objRow.hidden
-        if objTemplateSheet.sheet_format is not None:
-            objSheet.sheet_format = copy(objTemplateSheet.sheet_format)
-        if objTemplateSheet.sheet_properties is not None:
-            objSheet.sheet_properties = copy(objTemplateSheet.sheet_properties)
-        for objMergedRange in objTemplateSheet.merged_cells.ranges:
-            objSheet.merge_cells(str(objMergedRange))
-        for objRow in objTemplateSheet.iter_rows():
-            for objCell in objRow:
-                objTargetCell = objSheet.cell(row=objCell.row, column=objCell.column)
-                if objCell.value is not None:
-                    objTargetCell.value = objCell.value
-                if objCell.has_style:
-                    objTargetCell.font = copy(objCell.font)
-                    objTargetCell.border = copy(objCell.border)
-                    objTargetCell.fill = copy(objCell.fill)
-                    objTargetCell.number_format = objCell.number_format
-                    objTargetCell.protection = copy(objCell.protection)
-                    objTargetCell.alignment = copy(objCell.alignment)
+    if pszSheetName not in objWorkbook.sheetnames:
+        return
+    objSheet = objWorkbook[pszSheetName]
 
     for iRow, objRow in enumerate(objRows, start=1):
         for iCol, pszValue in enumerate(objRow, start=1):
-            objSheet.cell(row=iRow, column=iCol, value=_parse_excel_cell_value(pszValue))
+            objCellValue = parse_tsv_value_for_excel(pszValue)
+            objSheet.cell(row=iRow, column=iCol, value=objCellValue)
 
     objWorkbook.save(pszOutputPath)
 
