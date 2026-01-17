@@ -550,6 +550,7 @@ def _build_pj_summary_group_total_paths() -> Tuple[str, str]:
     pszScriptDirectory: str = os.path.dirname(os.path.abspath(__file__))
     pszTemplatePath: str = os.path.join(
         pszScriptDirectory,
+        "PJサマリ",
         "TEMPLATE_PJサマリ_グループ別合計.xlsx",
     )
     pszOutputPath: str = os.path.join(
@@ -569,9 +570,7 @@ def _build_pj_summary_group_sheet_name(
         f"{objStart[0]}年{pszSummaryStartMonth}月-"
         f"{objEnd[0]}年{pszSummaryEndMonth}月"
     )
-    if objStart[1] == 4:
-        return pszRangeLabel
-    return f"0005_PJサマリ_step0006_累計_損益計算書_{pszRangeLabel}.tsv"
+    return pszRangeLabel
 
 
 def insert_step0006_rows_into_group_summary_excel(
