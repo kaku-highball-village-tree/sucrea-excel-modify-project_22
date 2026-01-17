@@ -3923,7 +3923,11 @@ def create_cumulative_reports(pszPlPath: str) -> None:
     objStart, objEnd = objRange
     objFiscalARanges = split_by_fiscal_boundary(objStart, objEnd, 3)
     objFiscalBRanges = split_by_fiscal_boundary(objStart, objEnd, 8)
-    objAllRanges = objFiscalARanges + objFiscalBRanges
+    objAllRanges: List[Tuple[Tuple[int, int], Tuple[int, int]]] = []
+    if objFiscalARanges:
+        objAllRanges.append(objFiscalARanges[-1])
+    if objFiscalBRanges:
+        objAllRanges.append(objFiscalBRanges[-1])
 
     for objRangeItem in objAllRanges:
         create_cumulative_report(
