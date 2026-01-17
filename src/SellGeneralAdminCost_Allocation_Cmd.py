@@ -25,6 +25,7 @@ import os
 import shutil
 import re
 import sys
+from copy import copy
 from decimal import Decimal, ROUND_HALF_UP
 from typing import Dict, List, Optional, Tuple
 from openpyxl import load_workbook
@@ -580,16 +581,12 @@ def insert_step0006_rows_into_group_summary_excel(
     objEnd: Tuple[int, int],
 ) -> None:
     pszTemplatePath, pszOutputPath = _build_pj_summary_group_total_paths()
+    objTemplateWorkbook = load_workbook(pszTemplatePath)
+    objTemplateSheet = objTemplateWorkbook.worksheets[0]
     if os.path.isfile(pszOutputPath):
         objWorkbook = load_workbook(pszOutputPath)
-        objTemplateWorkbook = None
     else:
         objWorkbook = load_workbook(pszTemplatePath)
-        objTemplateWorkbook = objWorkbook
-
-    if objTemplateWorkbook is None:
-        objTemplateWorkbook = load_workbook(pszTemplatePath)
-    objTemplateSheet = objTemplateWorkbook.worksheets[0]
 
     pszSheetName: str = _build_pj_summary_group_sheet_name(objStart, objEnd)
     if pszSheetName in objWorkbook.sheetnames:
@@ -598,8 +595,31 @@ def insert_step0006_rows_into_group_summary_excel(
             for objCell in objRow:
                 objCell.value = None
     else:
-        objSheet = objWorkbook.copy_worksheet(objTemplateSheet)
-        objSheet.title = pszSheetName
+        objSheet = objWorkbook.create_sheet(title=pszSheetName)
+        for objColumnDimension, objColumn in objTemplateSheet.column_dimensions.items():
+            objSheet.column_dimensions[objColumnDimension].width = objColumn.width
+            objSheet.column_dimensions[objColumnDimension].hidden = objColumn.hidden
+        for objRowDimension, objRow in objTemplateSheet.row_dimensions.items():
+            objSheet.row_dimensions[objRowDimension].height = objRow.height
+            objSheet.row_dimensions[objRowDimension].hidden = objRow.hidden
+        if objTemplateSheet.sheet_format is not None:
+            objSheet.sheet_format = copy(objTemplateSheet.sheet_format)
+        if objTemplateSheet.sheet_properties is not None:
+            objSheet.sheet_properties = copy(objTemplateSheet.sheet_properties)
+        for objMergedRange in objTemplateSheet.merged_cells.ranges:
+            objSheet.merge_cells(str(objMergedRange))
+        for objRow in objTemplateSheet.iter_rows():
+            for objCell in objRow:
+                objTargetCell = objSheet.cell(row=objCell.row, column=objCell.column)
+                if objCell.value is not None:
+                    objTargetCell.value = objCell.value
+                if objCell.has_style:
+                    objTargetCell.font = copy(objCell.font)
+                    objTargetCell.border = copy(objCell.border)
+                    objTargetCell.fill = copy(objCell.fill)
+                    objTargetCell.number_format = objCell.number_format
+                    objTargetCell.protection = copy(objCell.protection)
+                    objTargetCell.alignment = copy(objCell.alignment)
 
     for iRow, objRow in enumerate(objRows, start=1):
         for iCol, pszValue in enumerate(objRow, start=1):
