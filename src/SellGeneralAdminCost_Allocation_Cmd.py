@@ -4469,6 +4469,8 @@ def create_cp_group_step0009_excel(pszScriptDirectory: str) -> Optional[str]:
     objTsvPaths = find_cp_group_step0009_vertical_paths(pszTargetDirectory)
     if not objTsvPaths:
         return None
+    objRangePath = find_selected_range_path(pszTargetDirectory)
+    objSelectedRange = parse_selected_range(objRangePath) if objRangePath else None
 
     pszTemplatePath: str = os.path.join(
         pszScriptDirectory,
@@ -4496,9 +4498,18 @@ def create_cp_group_step0009_excel(pszScriptDirectory: str) -> Optional[str]:
     if objTemplateSheet in objWorkbook.worksheets:
         objWorkbook.remove(objTemplateSheet)
 
+    if objSelectedRange is not None:
+        (iStartYear, iStartMonth), (iEndYear, iEndMonth) = objSelectedRange
+        pszStartLabel = f"{iStartYear}年{iStartMonth:02d}月"
+        pszEndLabel = f"{iEndYear}年{iEndMonth:02d}月"
+        pszOutputFileName = (
+            f"CP別経営管理_計上グループ_累計_{pszStartLabel}-{pszEndLabel}.xlsx"
+        )
+    else:
+        pszOutputFileName = "CP別経営管理_計上グループ_累計.xlsx"
     pszOutputPath: str = os.path.join(
         pszTargetDirectory,
-        "CP別経営管理_計上グループ_累計.xlsx",
+        pszOutputFileName,
     )
     objWorkbook.save(pszOutputPath)
     return pszOutputPath
