@@ -550,7 +550,6 @@ def _build_pj_summary_group_total_paths() -> Tuple[str, str]:
     pszScriptDirectory: str = os.path.dirname(os.path.abspath(__file__))
     pszTemplatePath: str = os.path.join(
         pszScriptDirectory,
-        "PJサマリ",
         "TEMPLATE_PJサマリ_グループ別合計.xlsx",
     )
     pszOutputPath: str = os.path.join(
