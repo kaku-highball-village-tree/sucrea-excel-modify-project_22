@@ -25,6 +25,7 @@ import os
 import shutil
 import re
 import sys
+from copy import copy
 from decimal import Decimal, ROUND_HALF_UP
 from typing import Dict, List, Optional, Tuple
 from openpyxl import load_workbook
