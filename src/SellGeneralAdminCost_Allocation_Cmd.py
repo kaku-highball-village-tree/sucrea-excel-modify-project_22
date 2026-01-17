@@ -4510,6 +4510,10 @@ def parse_tsv_value_for_excel(pszValue: str) -> Optional[object]:
         return None
     if pszText == "'－":
         return "－"
+    if pszText == "'－∞":
+        return "－∞"
+    if pszText == "'＋∞":
+        return "＋∞"
     if re.fullmatch(r"-?\d+", pszText):
         return int(pszText)
     if re.fullmatch(r"-?\d+\.\d+", pszText):
