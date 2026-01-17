@@ -25,6 +25,7 @@ import os
 import shutil
 import re
 import sys
+from copy import copy
 from decimal import Decimal, ROUND_HALF_UP
 from typing import Dict, List, Optional, Tuple
 from openpyxl import load_workbook
@@ -529,6 +530,100 @@ def allocate_company_sg_admin_cost(objRows: List[List[str]]) -> List[List[str]]:
 
     return objOutputRows
 
+
+def _parse_excel_cell_value(pszText: str) -> object:
+    pszValue: str = (pszText or "").strip()
+    if pszValue == "":
+        return ""
+    if pszValue == "－":
+        return pszValue
+    pszNormalized: str = pszValue.replace(",", "")
+    if re.match(r"^-?\d+(\.\d+)?$", pszNormalized):
+        try:
+            return Decimal(pszNormalized)
+        except Exception:
+            return pszValue
+    return pszValue
+
+
+def _build_pj_summary_group_total_paths() -> Tuple[str, str]:
+    pszScriptDirectory: str = os.path.dirname(os.path.abspath(__file__))
+    pszTemplatePath: str = os.path.join(
+        pszScriptDirectory,
+        "PJサマリ",
+        "TEMPLATE_PJサマリ_グループ別合計.xlsx",
+    )
+    pszOutputPath: str = os.path.join(
+        pszScriptDirectory,
+        "PJサマリ_グループ別合計.xlsx",
+    )
+    return pszTemplatePath, pszOutputPath
+
+
+def _build_pj_summary_group_sheet_name(
+    objStart: Tuple[int, int],
+    objEnd: Tuple[int, int],
+) -> str:
+    pszSummaryStartMonth: str = f"{objStart[1]:02d}"
+    pszSummaryEndMonth: str = f"{objEnd[1]:02d}"
+    pszRangeLabel: str = (
+        f"{objStart[0]}年{pszSummaryStartMonth}月-"
+        f"{objEnd[0]}年{pszSummaryEndMonth}月"
+    )
+    return pszRangeLabel
+
+
+def insert_step0006_rows_into_group_summary_excel(
+    objRows: List[List[str]],
+    objStart: Tuple[int, int],
+    objEnd: Tuple[int, int],
+) -> None:
+    pszTemplatePath, pszOutputPath = _build_pj_summary_group_total_paths()
+    objTemplateWorkbook = load_workbook(pszTemplatePath)
+    objTemplateSheet = objTemplateWorkbook.worksheets[0]
+    if os.path.isfile(pszOutputPath):
+        objWorkbook = load_workbook(pszOutputPath)
+    else:
+        objWorkbook = load_workbook(pszTemplatePath)
+
+    pszSheetName: str = _build_pj_summary_group_sheet_name(objStart, objEnd)
+    if pszSheetName in objWorkbook.sheetnames:
+        objSheet = objWorkbook[pszSheetName]
+        for objRow in objSheet.iter_rows():
+            for objCell in objRow:
+                objCell.value = None
+    else:
+        objSheet = objWorkbook.create_sheet(title=pszSheetName)
+        for objColumnDimension, objColumn in objTemplateSheet.column_dimensions.items():
+            objSheet.column_dimensions[objColumnDimension].width = objColumn.width
+            objSheet.column_dimensions[objColumnDimension].hidden = objColumn.hidden
+        for objRowDimension, objRow in objTemplateSheet.row_dimensions.items():
+            objSheet.row_dimensions[objRowDimension].height = objRow.height
+            objSheet.row_dimensions[objRowDimension].hidden = objRow.hidden
+        if objTemplateSheet.sheet_format is not None:
+            objSheet.sheet_format = copy(objTemplateSheet.sheet_format)
+        if objTemplateSheet.sheet_properties is not None:
+            objSheet.sheet_properties = copy(objTemplateSheet.sheet_properties)
+        for objMergedRange in objTemplateSheet.merged_cells.ranges:
+            objSheet.merge_cells(str(objMergedRange))
+        for objRow in objTemplateSheet.iter_rows():
+            for objCell in objRow:
+                objTargetCell = objSheet.cell(row=objCell.row, column=objCell.column)
+                if objCell.value is not None:
+                    objTargetCell.value = objCell.value
+                if objCell.has_style:
+                    objTargetCell.font = copy(objCell.font)
+                    objTargetCell.border = copy(objCell.border)
+                    objTargetCell.fill = copy(objCell.fill)
+                    objTargetCell.number_format = objCell.number_format
+                    objTargetCell.protection = copy(objCell.protection)
+                    objTargetCell.alignment = copy(objCell.alignment)
+
+    for iRow, objRow in enumerate(objRows, start=1):
+        for iCol, pszValue in enumerate(objRow, start=1):
+            objSheet.cell(row=iRow, column=iCol, value=_parse_excel_cell_value(pszValue))
+
+    objWorkbook.save(pszOutputPath)
 
 def insert_company_sg_admin_cost_columns(objRows: List[List[str]]) -> List[List[str]]:
     if not objRows:
@@ -3151,7 +3246,11 @@ def create_pj_summary(
     write_tsv_rows(pszCumulativeStep0003Path0005, objCumulativeStep0003Rows0005)
     pszCumulativeStep0004Path0005: str = os.path.join(
         pszDirectory,
-        f"0005_PJサマリ_step0004_累計_損益計算書_{iEndYear}年{pszEndMonth}月.tsv",
+        (
+            "0005_PJサマリ_step0004_累計_損益計算書_"
+            f"{objStart[0]}年{pszSummaryStartMonth}月-"
+            f"{objEnd[0]}年{pszSummaryEndMonth}月.tsv"
+        ),
     )
     objCumulativeStep0004Rows0005 = build_step0004_rows_for_group_summary(
         objCumulativeStep0003Rows0005
@@ -3159,7 +3258,11 @@ def create_pj_summary(
     write_tsv_rows(pszCumulativeStep0004Path0005, objCumulativeStep0004Rows0005)
     pszStep0005Path0005: str = os.path.join(
         pszDirectory,
-        f"0005_PJサマリ_step0005_単・累_損益計算書_{iEndYear}年{pszEndMonth}月.tsv",
+        (
+            "0005_PJサマリ_step0005_単・累_損益計算書_"
+            f"{objStart[0]}年{pszSummaryStartMonth}月-"
+            f"{objEnd[0]}年{pszSummaryEndMonth}月.tsv"
+        ),
     )
     objStep0005Rows0005 = build_step0005_rows_for_summary(
         objSingleStep0004Rows0005,
@@ -3168,10 +3271,20 @@ def create_pj_summary(
     write_tsv_rows(pszStep0005Path0005, objStep0005Rows0005)
     pszStep0006Path0005: str = os.path.join(
         pszDirectory,
-        f"0005_PJサマリ_step0006_単・累_損益計算書_{iEndYear}年{pszEndMonth}月.tsv",
+        (
+            "0005_PJサマリ_step0006_累計_損益計算書_"
+            f"{objStart[0]}年{pszSummaryStartMonth}月-"
+            f"{objEnd[0]}年{pszSummaryEndMonth}月.tsv"
+        ),
     )
     objStep0006Rows0005 = build_step0006_rows_for_summary(objStep0005Rows0005)
     write_tsv_rows(pszStep0006Path0005, objStep0006Rows0005)
+    if objStart != objEnd:
+        insert_step0006_rows_into_group_summary_excel(
+            objStep0006Rows0005,
+            objStart,
+            objEnd,
+        )
     pszCumulativeStep0004Path: str = os.path.join(
         pszDirectory,
         f"0004_PJサマリ_step0004_累計_損益計算書_{iEndYear}年{pszEndMonth}月.tsv",
