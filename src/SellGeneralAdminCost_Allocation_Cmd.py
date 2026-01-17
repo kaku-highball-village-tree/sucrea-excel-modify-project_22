@@ -530,6 +530,83 @@ def allocate_company_sg_admin_cost(objRows: List[List[str]]) -> List[List[str]]:
     return objOutputRows
 
 
+def _parse_excel_cell_value(pszText: str) -> object:
+    pszValue: str = (pszText or "").strip()
+    if pszValue == "":
+        return ""
+    if pszValue == "－":
+        return pszValue
+    pszNormalized: str = pszValue.replace(",", "")
+    if re.match(r"^-?\d+(\.\d+)?$", pszNormalized):
+        try:
+            return Decimal(pszNormalized)
+        except Exception:
+            return pszValue
+    return pszValue
+
+
+def _build_pj_summary_group_total_paths() -> Tuple[str, str]:
+    pszScriptDirectory: str = os.path.dirname(os.path.abspath(__file__))
+    pszTemplatePath: str = os.path.join(
+        pszScriptDirectory,
+        "PJサマリ",
+        "TEMPLATE_PJサマリ_グループ別合計.xlsx",
+    )
+    pszOutputPath: str = os.path.join(
+        pszScriptDirectory,
+        "PJサマリ_グループ別合計.xlsx",
+    )
+    return pszTemplatePath, pszOutputPath
+
+
+def _build_pj_summary_group_sheet_name(
+    objStart: Tuple[int, int],
+    objEnd: Tuple[int, int],
+) -> str:
+    pszSummaryStartMonth: str = f"{objStart[1]:02d}"
+    pszSummaryEndMonth: str = f"{objEnd[1]:02d}"
+    pszRangeLabel: str = (
+        f"{objStart[0]}年{pszSummaryStartMonth}月-"
+        f"{objEnd[0]}年{pszSummaryEndMonth}月"
+    )
+    if objStart[1] == 4:
+        return pszRangeLabel
+    return f"0005_PJサマリ_step0006_累計_損益計算書_{pszRangeLabel}.tsv"
+
+
+def insert_step0006_rows_into_group_summary_excel(
+    objRows: List[List[str]],
+    objStart: Tuple[int, int],
+    objEnd: Tuple[int, int],
+) -> None:
+    pszTemplatePath, pszOutputPath = _build_pj_summary_group_total_paths()
+    if os.path.isfile(pszOutputPath):
+        objWorkbook = load_workbook(pszOutputPath)
+        objTemplateWorkbook = None
+    else:
+        objWorkbook = load_workbook(pszTemplatePath)
+        objTemplateWorkbook = objWorkbook
+
+    if objTemplateWorkbook is None:
+        objTemplateWorkbook = load_workbook(pszTemplatePath)
+    objTemplateSheet = objTemplateWorkbook.worksheets[0]
+
+    pszSheetName: str = _build_pj_summary_group_sheet_name(objStart, objEnd)
+    if pszSheetName in objWorkbook.sheetnames:
+        objSheet = objWorkbook[pszSheetName]
+        for objRow in objSheet.iter_rows():
+            for objCell in objRow:
+                objCell.value = None
+    else:
+        objSheet = objWorkbook.copy_worksheet(objTemplateSheet)
+        objSheet.title = pszSheetName
+
+    for iRow, objRow in enumerate(objRows, start=1):
+        for iCol, pszValue in enumerate(objRow, start=1):
+            objSheet.cell(row=iRow, column=iCol, value=_parse_excel_cell_value(pszValue))
+
+    objWorkbook.save(pszOutputPath)
+
 def insert_company_sg_admin_cost_columns(objRows: List[List[str]]) -> List[List[str]]:
     if not objRows:
         return objRows
@@ -3184,6 +3261,12 @@ def create_pj_summary(
     )
     objStep0006Rows0005 = build_step0006_rows_for_summary(objStep0005Rows0005)
     write_tsv_rows(pszStep0006Path0005, objStep0006Rows0005)
+    if objStart != objEnd:
+        insert_step0006_rows_into_group_summary_excel(
+            objStep0006Rows0005,
+            objStart,
+            objEnd,
+        )
     pszCumulativeStep0004Path: str = os.path.join(
         pszDirectory,
         f"0004_PJサマリ_step0004_累計_損益計算書_{iEndYear}年{pszEndMonth}月.tsv",
