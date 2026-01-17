@@ -3943,6 +3943,7 @@ def create_cumulative_reports(pszPlPath: str) -> None:
         create_pj_summary(pszPlPath, (objMonth, objMonth))
     try_create_cp_step0009_vertical(pszDirectory)
     try_create_cp_group_step0009_vertical(pszDirectory)
+    create_pj_summary_gross_profit_ranking_excel(pszDirectory)
 
 
 def copy_cp_step0005_vertical_files(pszDirectory: str, objPaths: List[Optional[str]]) -> None:
@@ -4064,6 +4065,40 @@ def copy_group_step0006_files(
         "0002_CP別_step0006",
         create_step0007=create_step0007,
     )
+
+
+def create_pj_summary_gross_profit_ranking_excel(pszDirectory: str) -> Optional[str]:
+    pszInputPath: str = os.path.join(
+        pszDirectory,
+        "0002_PJサマリ_step0010_単月・累計_粗利金額ランキング.tsv",
+    )
+    if not os.path.isfile(pszInputPath):
+        return None
+    pszTemplatePath: str = os.path.join(
+        os.path.dirname(__file__),
+        "TEMPLATE_PJサマリ_単月・累計_粗利金額ランキング.xlsx",
+    )
+    if not os.path.isfile(pszTemplatePath):
+        return None
+    objWorkbook = load_workbook(pszTemplatePath)
+    objSheet = objWorkbook.worksheets[0]
+    objRows = read_tsv_rows(pszInputPath)
+    for iRowIndex, objRow in enumerate(objRows, start=1):
+        for iColumnIndex, pszValue in enumerate(objRow, start=1):
+            objCellValue = parse_tsv_value_for_excel(pszValue)
+            objSheet.cell(
+                row=iRowIndex,
+                column=iColumnIndex,
+                value=objCellValue,
+            )
+    pszTargetDirectory: str = os.path.join(pszDirectory, "PJサマリ")
+    os.makedirs(pszTargetDirectory, exist_ok=True)
+    pszOutputPath: str = os.path.join(
+        pszTargetDirectory,
+        "PJサマリ_単月・累計_粗利金額ランキング.xlsx",
+    )
+    objWorkbook.save(pszOutputPath)
+    return pszOutputPath
 
 
 def reorder_cp_step0006_rows(objRows: List[List[str]]) -> List[List[str]]:
