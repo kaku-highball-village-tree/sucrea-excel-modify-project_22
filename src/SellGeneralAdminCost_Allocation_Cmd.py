@@ -4412,6 +4412,26 @@ def build_cp_company_step0009_single_path(
     )
 
 
+def find_cp_company_step0009_vertical_paths(
+    pszDirectory: str,
+) -> List[Tuple[str, str]]:
+    objMatches: List[Tuple[str, str]] = []
+    for pszFileName in os.listdir(pszDirectory):
+        objMatch = re.match(
+            (
+                r"0001_CP別_step0009_累計_損益計算書_"
+                r"(\d{4}年\d{2}月-\d{4}年\d{2}月)_計上カンパニー_vertical\.tsv"
+            ),
+            pszFileName,
+        )
+        if objMatch is None:
+            continue
+        pszPeriodLabel: str = objMatch.group(1)
+        objMatches.append((pszPeriodLabel, os.path.join(pszDirectory, pszFileName)))
+    objMatches.sort(key=lambda objItem: objItem[0])
+    return objMatches
+
+
 def build_cp_group_step0009_cumulative_path(
     pszDirectory: str,
     objRange: Tuple[Tuple[int, int], Tuple[int, int]],
@@ -4460,6 +4480,59 @@ def parse_tsv_value_for_excel(pszValue: str) -> Optional[object]:
     if re.fullmatch(r"-?\d+\.\d+", pszText):
         return float(pszText)
     return pszText
+
+
+def create_cp_company_step0009_excel(pszScriptDirectory: str) -> Optional[str]:
+    pszTargetDirectory: str = os.path.join(pszScriptDirectory, "0001_CP別_step0009")
+    if not os.path.isdir(pszTargetDirectory):
+        return None
+    objTsvPaths = find_cp_company_step0009_vertical_paths(pszTargetDirectory)
+    if not objTsvPaths:
+        return None
+    objRangePath = find_selected_range_path(pszTargetDirectory)
+    objSelectedRange = parse_selected_range(objRangePath) if objRangePath else None
+
+    pszTemplatePath: str = os.path.join(
+        pszScriptDirectory,
+        "TEMPLATE_CP別経営管理_計上カンパニー_累計.xlsx",
+    )
+    if not os.path.isfile(pszTemplatePath):
+        return None
+
+    objWorkbook = load_workbook(pszTemplatePath)
+    objTemplateSheet = objWorkbook.worksheets[0]
+    for pszPeriodLabel, pszInputPath in objTsvPaths:
+        if pszPeriodLabel in objWorkbook.sheetnames:
+            objWorkbook.remove(objWorkbook[pszPeriodLabel])
+        objSheet = objWorkbook.copy_worksheet(objTemplateSheet)
+        objSheet.title = pszPeriodLabel
+        objRows = read_tsv_rows(pszInputPath)
+        for iRowIndex, objRow in enumerate(objRows, start=1):
+            for iColumnIndex, pszValue in enumerate(objRow, start=1):
+                objCellValue = parse_tsv_value_for_excel(pszValue)
+                objSheet.cell(
+                    row=iRowIndex,
+                    column=iColumnIndex,
+                    value=objCellValue,
+                )
+    if objTemplateSheet in objWorkbook.worksheets:
+        objWorkbook.remove(objTemplateSheet)
+
+    if objSelectedRange is not None:
+        (iStartYear, iStartMonth), (iEndYear, iEndMonth) = objSelectedRange
+        pszStartLabel = f"{iStartYear}年{iStartMonth:02d}月"
+        pszEndLabel = f"{iEndYear}年{iEndMonth:02d}月"
+        pszOutputFileName = (
+            f"CP別経営管理_計上カンパニー_累計_{pszStartLabel}-{pszEndLabel}.xlsx"
+        )
+    else:
+        pszOutputFileName = "CP別経営管理_計上カンパニー_累計.xlsx"
+    pszOutputPath: str = os.path.join(
+        pszTargetDirectory,
+        pszOutputFileName,
+    )
+    objWorkbook.save(pszOutputPath)
+    return pszOutputPath
 
 
 def create_cp_group_step0009_excel(pszScriptDirectory: str) -> Optional[str]:
@@ -4645,6 +4718,7 @@ def try_create_cp_step0009_vertical(pszDirectory: str) -> None:
 
     for objRangeItem in objTargetRanges:
         build_cp_step0009_vertical_for_range(pszDirectory, objRangeItem)
+    create_cp_company_step0009_excel(os.path.dirname(__file__))
 
 
 def try_create_cp_group_step0009_vertical(pszDirectory: str) -> None:
