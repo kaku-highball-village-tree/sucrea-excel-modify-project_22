@@ -545,6 +545,20 @@ def _build_pj_summary_group_total_paths() -> Tuple[str, str]:
     return pszTemplatePath, pszOutputPath
 
 
+def _build_pj_summary_company_total_paths() -> Tuple[str, str]:
+    pszScriptDirectory: str = os.path.dirname(os.path.abspath(__file__))
+    pszTemplatePath: str = os.path.join(
+        pszScriptDirectory,
+        "TEMPLATE_PJサマリ_カンパニー別合計.xlsx",
+    )
+    pszOutputPath: str = os.path.join(
+        pszScriptDirectory,
+        "PJサマリ",
+        "PJサマリ_カンパニー別合計.xlsx",
+    )
+    return pszTemplatePath, pszOutputPath
+
+
 def _build_pj_summary_group_sheet_name(
     objStart: Tuple[int, int],
     objEnd: Tuple[int, int],
@@ -560,6 +574,36 @@ def insert_step0006_rows_into_group_summary_excel(
     objEnd: Tuple[int, int],
 ) -> None:
     pszTemplatePath, pszOutputPath = _build_pj_summary_group_total_paths()
+    pszSheetName: str = _build_pj_summary_group_sheet_name(objStart, objEnd)
+    if not os.path.isfile(pszTemplatePath):
+        return
+    if os.path.isfile(pszOutputPath):
+        objWorkbook = load_workbook(pszOutputPath)
+    else:
+        objWorkbook = load_workbook(pszTemplatePath)
+    if pszSheetName not in objWorkbook.sheetnames:
+        pszSourceSheetName: str = "Sheet1" if objStart[1] == 4 else "Sheet2"
+        if pszSourceSheetName in objWorkbook.sheetnames:
+            objWorkbook[pszSourceSheetName].title = pszSheetName
+    if pszSheetName not in objWorkbook.sheetnames:
+        return
+    objSheet = objWorkbook[pszSheetName]
+
+    for iRow, objRow in enumerate(objRows, start=1):
+        for iCol, pszValue in enumerate(objRow, start=1):
+            objCellValue = parse_tsv_value_for_excel(pszValue)
+            objSheet.cell(row=iRow, column=iCol, value=objCellValue)
+
+    os.makedirs(os.path.dirname(pszOutputPath), exist_ok=True)
+    objWorkbook.save(pszOutputPath)
+
+
+def insert_step0006_rows_into_company_summary_excel(
+    objRows: List[List[str]],
+    objStart: Tuple[int, int],
+    objEnd: Tuple[int, int],
+) -> None:
+    pszTemplatePath, pszOutputPath = _build_pj_summary_company_total_paths()
     pszSheetName: str = _build_pj_summary_group_sheet_name(objStart, objEnd)
     if not os.path.isfile(pszTemplatePath):
         return
@@ -3281,10 +3325,20 @@ def create_pj_summary(
     write_tsv_rows(pszStep0005Path, objStep0005Rows)
     pszStep0006Path: str = os.path.join(
         pszDirectory,
-        f"0004_PJサマリ_step0006_単・累_損益計算書_{iEndYear}年{pszEndMonth}月.tsv",
+        (
+            "0004_PJサマリ_step0006_単・累_損益計算書_"
+            f"{objStart[0]}年{pszSummaryStartMonth}月-"
+            f"{objEnd[0]}年{pszSummaryEndMonth}月.tsv"
+        ),
     )
     objStep0006Rows = build_step0006_rows_for_summary(objStep0005Rows)
     write_tsv_rows(pszStep0006Path, objStep0006Rows)
+    if objStart != objEnd:
+        insert_step0006_rows_into_company_summary_excel(
+            objStep0006Rows,
+            objStart,
+            objEnd,
+        )
 
     objSingleOutputRows: List[List[str]] = []
     for objRow in objSingleRows:
