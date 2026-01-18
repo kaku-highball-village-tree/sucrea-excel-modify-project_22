@@ -3770,6 +3770,11 @@ def create_pj_summary(
         "売上原価",
         "売上総利益",
         "配賦販管費",
+        "1Cカンパニー販管費",
+        "2Cカンパニー販管費",
+        "3Cカンパニー販管費",
+        "4Cカンパニー販管費",
+        "事業開発カンパニー販管費",
     ]
     objSingleStep0002Rows: List[List[str]] = filter_rows_by_columns(
         objSingleOutputRows,
@@ -3781,11 +3786,15 @@ def create_pj_summary(
     )
     pszSingleStep0002Path: str = os.path.join(
         pszDirectory,
-        "0001_PJサマリ_step0002_単月_損益計算書.tsv",
+        f"0001_PJサマリ_step0002_{iEndYear}年{pszEndMonth}月_単月_損益計算書.tsv",
     )
     pszCumulativeStep0002Path: str = os.path.join(
         pszDirectory,
-        "0001_PJサマリ_step0002_累計_損益計算書.tsv",
+        (
+            "0001_PJサマリ_step0002_"
+            f"{objStart[0]}年{pszSummaryStartMonth}月-"
+            f"{objEnd[0]}年{pszSummaryEndMonth}月_累計_損益計算書.tsv"
+        ),
     )
     write_tsv_rows(pszSingleStep0002Path, objSingleStep0002Rows)
     write_tsv_rows(pszCumulativeStep0002Path, objCumulativeStep0002Rows)
