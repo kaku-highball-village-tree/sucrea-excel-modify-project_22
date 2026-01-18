@@ -3443,11 +3443,15 @@ def create_pj_summary(
 
     pszSingleOutputPath: str = os.path.join(
         pszDirectory,
-        "0001_PJサマリ_step0001_単月_損益計算書.tsv",
+        f"0001_PJサマリ_step0001_{iEndYear}年{pszEndMonth}月_単月_損益計算書.tsv",
     )
     pszCumulativeOutputPath: str = os.path.join(
         pszDirectory,
-        "0001_PJサマリ_step0001_累計_損益計算書.tsv",
+        (
+            "0001_PJサマリ_step0001_"
+            f"{objStart[0]}年{pszSummaryStartMonth}月-"
+            f"{objEnd[0]}年{pszSummaryEndMonth}月_累計_損益計算書.tsv"
+        ),
     )
     write_tsv_rows(pszSingleOutputPath, objSingleOutputRows)
     write_tsv_rows(pszCumulativeOutputPath, objCumulativeOutputRows)
@@ -3466,14 +3470,18 @@ def create_pj_summary(
         objCostReportSingleRows: List[List[str]] = read_tsv_rows(pszSingleCostReportPath)
         pszCostReportSingleOutputPath: str = os.path.join(
             pszDirectory,
-            "0001_PJサマリ_step0001_単月_製造原価報告書.tsv",
+            f"0001_PJサマリ_step0001_{iEndYear}年{pszEndMonth}月_単月_製造原価報告書.tsv",
         )
         write_tsv_rows(pszCostReportSingleOutputPath, objCostReportSingleRows)
     if os.path.isfile(pszCumulativeCostReportPath):
         objCostReportCumulativeRows: List[List[str]] = read_tsv_rows(pszCumulativeCostReportPath)
         pszCostReportCumulativeOutputPath: str = os.path.join(
             pszDirectory,
-            "0001_PJサマリ_step0001_累計_製造原価報告書.tsv",
+            (
+                "0001_PJサマリ_step0001_"
+                f"{objStart[0]}年{pszSummaryStartMonth}月-"
+                f"{objEnd[0]}年{pszSummaryEndMonth}月_累計_製造原価報告書.tsv"
+            ),
         )
         write_tsv_rows(pszCostReportCumulativeOutputPath, objCostReportCumulativeRows)
 
