@@ -1541,10 +1541,33 @@ def build_step0011_rows(objRows: List[List[str]]) -> List[List[str]]:
 
     for iRowIndex, objRow in enumerate(objOutputRows):
         pszName: str = objRow[0] if objRow else ""
+        if iRowIndex == 0:
+            objRow[0] = "単月"
+            if iCumulativeNameIndex < len(objRow):
+                objRow[iCumulativeNameIndex] = "累計"
         if pszName == "純売上高" and iBlankColumnIndex < len(objRow):
             objRow[iBlankColumnIndex] = "損益計算書"
         if pszName == "材料費" and iBlankColumnIndex < len(objRow):
             objRow[iBlankColumnIndex] = "製造原価報告書"
+        if pszName in (
+            "工数行(時間)",
+            "工数1時間当たり純売上高",
+            "工数1時間当たり営業利益",
+            "工数行(h:mm:ss)",
+        ):
+            objUnitsMap: Dict[str, str] = {
+                "工数行(時間)": "時間",
+                "工数1時間当たり純売上高": "円",
+                "工数1時間当たり営業利益": "円",
+                "工数行(h:mm:ss)": "h:mm:ss",
+            }
+            pszUnit: str = objUnitsMap.get(pszName, "")
+            iSingleUnitIndex: int = iBlankColumnIndex - 1
+            iCumulativeUnitIndex: int = iBlankColumnIndex + 3
+            if 0 <= iSingleUnitIndex < len(objRow):
+                objRow[iSingleUnitIndex] = pszUnit
+            if 0 <= iCumulativeUnitIndex < len(objRow):
+                objRow[iCumulativeUnitIndex] = pszUnit
 
         if (
             iMaterialsIndex >= 0
