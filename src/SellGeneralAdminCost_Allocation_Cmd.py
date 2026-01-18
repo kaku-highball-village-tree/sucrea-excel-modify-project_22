@@ -567,6 +567,10 @@ def insert_step0006_rows_into_group_summary_excel(
     else:
         objWorkbook = load_workbook(pszTemplatePath)
     if pszSheetName not in objWorkbook.sheetnames:
+        pszSourceSheetName: str = "Sheet1" if objStart[1] == 4 else "Sheet2"
+        if pszSourceSheetName in objWorkbook.sheetnames:
+            objWorkbook[pszSourceSheetName].title = pszSheetName
+    if pszSheetName not in objWorkbook.sheetnames:
         return
     objSheet = objWorkbook[pszSheetName]
 
