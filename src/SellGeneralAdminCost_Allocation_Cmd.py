@@ -539,6 +539,7 @@ def _build_pj_summary_group_total_paths() -> Tuple[str, str]:
     )
     pszOutputPath: str = os.path.join(
         pszScriptDirectory,
+        "PJサマリ",
         "PJサマリ_グループ別合計.xlsx",
     )
     return pszTemplatePath, pszOutputPath
@@ -579,6 +580,7 @@ def insert_step0006_rows_into_group_summary_excel(
             objCellValue = parse_tsv_value_for_excel(pszValue)
             objSheet.cell(row=iRow, column=iCol, value=objCellValue)
 
+    os.makedirs(os.path.dirname(pszOutputPath), exist_ok=True)
     objWorkbook.save(pszOutputPath)
 
 def insert_company_sg_admin_cost_columns(objRows: List[List[str]]) -> List[List[str]]:
