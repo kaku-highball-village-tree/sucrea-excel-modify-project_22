@@ -3109,9 +3109,10 @@ def create_pj_summary(
 
     pszOrgTablePath: str = os.path.join(pszDirectory, "管轄PJ表.tsv")
     objGroupMap = load_org_table_group_map(pszOrgTablePath)
+    objCompanyMap = load_org_table_company_map(pszOrgTablePath)
     objSingleStep0003Rows = build_step0003_rows(
         read_tsv_rows(pszSingleStep0002Path),
-        objGroupMap,
+        objCompanyMap,
     )
     pszSingleStep0003Path: str = os.path.join(
         pszDirectory,
@@ -3190,7 +3191,7 @@ def create_pj_summary(
 
     objCumulativeStep0003Rows = build_step0003_rows(
         read_tsv_rows(pszCumulativeStep0002Path),
-        objGroupMap,
+        objCompanyMap,
     )
     pszCumulativeStep0003Path: str = os.path.join(
         pszDirectory,
@@ -3257,13 +3258,21 @@ def create_pj_summary(
         )
     pszCumulativeStep0004Path: str = os.path.join(
         pszDirectory,
-        f"0004_PJサマリ_step0004_累計_損益計算書_{iEndYear}年{pszEndMonth}月.tsv",
+        (
+            "0004_PJサマリ_step0004_累計_損益計算書_"
+            f"{objStart[0]}年{pszSummaryStartMonth}月-"
+            f"{objEnd[0]}年{pszSummaryEndMonth}月.tsv"
+        ),
     )
     objCumulativeStep0004Rows = build_step0004_rows_for_summary(objCumulativeStep0003Rows)
     write_tsv_rows(pszCumulativeStep0004Path, objCumulativeStep0004Rows)
     pszStep0005Path: str = os.path.join(
         pszDirectory,
-        f"0004_PJサマリ_step0005_単・累_損益計算書_{iEndYear}年{pszEndMonth}月.tsv",
+        (
+            "0004_PJサマリ_step0005_単・累_損益計算書_"
+            f"{objStart[0]}年{pszSummaryStartMonth}月-"
+            f"{objEnd[0]}年{pszSummaryEndMonth}月.tsv"
+        ),
     )
     objStep0005Rows = build_step0005_rows_for_summary(
         objSingleStep0004Rows,
