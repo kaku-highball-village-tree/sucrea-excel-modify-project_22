@@ -2771,6 +2771,11 @@ def create_step0007_pl_cr(
                     pszStep0011Path = os.path.join(pszStep0011Directory, pszStep0011Name)
                     objStep0011Rows = build_step0011_rows(objStep0010Rows)
                     write_tsv_rows(pszStep0011Path, objStep0011Rows)
+                    create_pj_summary_pl_cr_manhour_excel(
+                        pszDirectory,
+                        pszColumnName,
+                        pszStep0011Path,
+                    )
 
     move_files_to_temp(
         [
@@ -4341,6 +4346,44 @@ def create_pj_summary_gross_profit_ranking_excel(pszDirectory: str) -> Optional[
     pszOutputPath: str = os.path.join(
         pszTargetDirectory,
         "PJサマリ_単月・累計_粗利金額ランキング.xlsx",
+    )
+    objWorkbook.save(pszOutputPath)
+    return pszOutputPath
+
+
+def create_pj_summary_pl_cr_manhour_excel(
+    pszDirectory: str,
+    pszProjectName: str,
+    pszInputPath: str,
+) -> Optional[str]:
+    if not os.path.isfile(pszInputPath):
+        return None
+    pszTemplatePath: str = os.path.join(
+        os.path.dirname(__file__),
+        "TEMPLATE_PJサマリ_単月・累計_損益計算書・製造原価報告書・工数.xlsx",
+    )
+    if not os.path.isfile(pszTemplatePath):
+        return None
+    objWorkbook = load_workbook(pszTemplatePath)
+    objSheet = objWorkbook.worksheets[0]
+    objRows = read_tsv_rows(pszInputPath)
+    for iRowIndex, objRow in enumerate(objRows, start=1):
+        for iColumnIndex, pszValue in enumerate(objRow, start=1):
+            objCellValue = parse_tsv_value_for_excel(pszValue)
+            objSheet.cell(
+                row=iRowIndex,
+                column=iColumnIndex,
+                value=objCellValue,
+            )
+    pszTargetDirectory: str = os.path.join(
+        pszDirectory,
+        "PJサマリ",
+        "PJ別_損益計算書・製造原価報告書・工数",
+    )
+    os.makedirs(pszTargetDirectory, exist_ok=True)
+    pszOutputPath: str = os.path.join(
+        pszTargetDirectory,
+        f"PJサマリ_単・累計_{pszProjectName}.xlsx",
     )
     objWorkbook.save(pszOutputPath)
     return pszOutputPath
