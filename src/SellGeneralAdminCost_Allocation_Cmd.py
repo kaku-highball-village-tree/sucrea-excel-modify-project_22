@@ -3109,9 +3109,10 @@ def create_pj_summary(
 
     pszOrgTablePath: str = os.path.join(pszDirectory, "管轄PJ表.tsv")
     objGroupMap = load_org_table_group_map(pszOrgTablePath)
+    objCompanyMap = load_org_table_company_map(pszOrgTablePath)
     objSingleStep0003Rows = build_step0003_rows(
         read_tsv_rows(pszSingleStep0002Path),
-        objGroupMap,
+        objCompanyMap,
     )
     pszSingleStep0003Path: str = os.path.join(
         pszDirectory,
@@ -3190,7 +3191,7 @@ def create_pj_summary(
 
     objCumulativeStep0003Rows = build_step0003_rows(
         read_tsv_rows(pszCumulativeStep0002Path),
-        objGroupMap,
+        objCompanyMap,
     )
     pszCumulativeStep0003Path: str = os.path.join(
         pszDirectory,
