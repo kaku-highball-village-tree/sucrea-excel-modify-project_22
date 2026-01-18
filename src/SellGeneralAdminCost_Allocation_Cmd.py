@@ -548,9 +548,9 @@ def _build_pj_summary_group_sheet_name(
     objStart: Tuple[int, int],
     objEnd: Tuple[int, int],
 ) -> str:
-    if objStart[1] == 4:
-        return "Sheet1"
-    return "Sheet2"
+    pszSummaryStartMonth: str = f"{objStart[1]:02d}"
+    pszSummaryEndMonth: str = f"{objEnd[1]:02d}"
+    return f"{objStart[0]}年{pszSummaryStartMonth}月-{objEnd[0]}年{pszSummaryEndMonth}月"
 
 
 def insert_step0006_rows_into_group_summary_excel(
