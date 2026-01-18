@@ -1549,6 +1549,8 @@ def build_step0011_rows(objRows: List[List[str]]) -> List[List[str]]:
             objRow[iBlankColumnIndex] = "損益計算書"
         if pszName == "材料費" and iBlankColumnIndex < len(objRow):
             objRow[iBlankColumnIndex] = "製造原価報告書"
+        if pszName == "工数行(時間)" and iBlankColumnIndex < len(objRow):
+            objRow[iBlankColumnIndex] = "工数表"
         if pszName in (
             "工数行(時間)",
             "工数1時間当たり純売上高",
