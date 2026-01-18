@@ -545,6 +545,20 @@ def _build_pj_summary_group_total_paths() -> Tuple[str, str]:
     return pszTemplatePath, pszOutputPath
 
 
+def _build_pj_summary_company_total_paths() -> Tuple[str, str]:
+    pszScriptDirectory: str = os.path.dirname(os.path.abspath(__file__))
+    pszTemplatePath: str = os.path.join(
+        pszScriptDirectory,
+        "TEMPLATE_PJサマリ_カンパニー別合計.xlsx",
+    )
+    pszOutputPath: str = os.path.join(
+        pszScriptDirectory,
+        "PJサマリ",
+        "PJサマリ_カンパニー別合計.xlsx",
+    )
+    return pszTemplatePath, pszOutputPath
+
+
 def _build_pj_summary_group_sheet_name(
     objStart: Tuple[int, int],
     objEnd: Tuple[int, int],
@@ -560,6 +574,36 @@ def insert_step0006_rows_into_group_summary_excel(
     objEnd: Tuple[int, int],
 ) -> None:
     pszTemplatePath, pszOutputPath = _build_pj_summary_group_total_paths()
+    pszSheetName: str = _build_pj_summary_group_sheet_name(objStart, objEnd)
+    if not os.path.isfile(pszTemplatePath):
+        return
+    if os.path.isfile(pszOutputPath):
+        objWorkbook = load_workbook(pszOutputPath)
+    else:
+        objWorkbook = load_workbook(pszTemplatePath)
+    if pszSheetName not in objWorkbook.sheetnames:
+        pszSourceSheetName: str = "Sheet1" if objStart[1] == 4 else "Sheet2"
+        if pszSourceSheetName in objWorkbook.sheetnames:
+            objWorkbook[pszSourceSheetName].title = pszSheetName
+    if pszSheetName not in objWorkbook.sheetnames:
+        return
+    objSheet = objWorkbook[pszSheetName]
+
+    for iRow, objRow in enumerate(objRows, start=1):
+        for iCol, pszValue in enumerate(objRow, start=1):
+            objCellValue = parse_tsv_value_for_excel(pszValue)
+            objSheet.cell(row=iRow, column=iCol, value=objCellValue)
+
+    os.makedirs(os.path.dirname(pszOutputPath), exist_ok=True)
+    objWorkbook.save(pszOutputPath)
+
+
+def insert_step0006_rows_into_company_summary_excel(
+    objRows: List[List[str]],
+    objStart: Tuple[int, int],
+    objEnd: Tuple[int, int],
+) -> None:
+    pszTemplatePath, pszOutputPath = _build_pj_summary_company_total_paths()
     pszSheetName: str = _build_pj_summary_group_sheet_name(objStart, objEnd)
     if not os.path.isfile(pszTemplatePath):
         return
@@ -1472,6 +1516,80 @@ def build_step0010_rows(
         if len(objCumulativeRow) < iCumulativeColumnCount:
             objCumulativeRow.extend([""] * (iCumulativeColumnCount - len(objCumulativeRow)))
         objOutputRows.append(objSingleRow + [""] + objCumulativeRow)
+
+    return objOutputRows
+
+
+def build_step0011_rows(objRows: List[List[str]]) -> List[List[str]]:
+    if not objRows:
+        return []
+
+    objOutputRows: List[List[str]] = [list(objRow) for objRow in objRows]
+    iBlankColumnIndex: int = -1
+    for objRow in objOutputRows:
+        if "" in objRow:
+            iBlankColumnIndex = objRow.index("")
+            break
+    if iBlankColumnIndex < 0:
+        return objOutputRows
+
+    iCumulativeNameIndex: int = iBlankColumnIndex + 1
+    iMaterialsIndex: int = find_row_index_by_name(objOutputRows, "材料費")
+    iLaborIndex: int = find_row_index_by_name(objOutputRows, "労務費")
+    iOutsourceIndex: int = find_row_index_by_name(objOutputRows, "外注加工費")
+    iManufacturingIndex: int = find_row_index_by_name(objOutputRows, "製造経費")
+
+    for iRowIndex, objRow in enumerate(objOutputRows):
+        pszName: str = objRow[0] if objRow else ""
+        if iRowIndex == 0:
+            objRow[0] = "単月"
+            if iCumulativeNameIndex < len(objRow):
+                objRow[iCumulativeNameIndex] = "累計"
+        if pszName == "純売上高" and iBlankColumnIndex < len(objRow):
+            objRow[iBlankColumnIndex] = "損益計算書"
+        if pszName == "材料費" and iBlankColumnIndex < len(objRow):
+            objRow[iBlankColumnIndex] = "製造原価報告書"
+        if pszName in (
+            "工数行(時間)",
+            "工数1時間当たり純売上高",
+            "工数1時間当たり営業利益",
+            "工数行(h:mm:ss)",
+        ):
+            objUnitsMap: Dict[str, str] = {
+                "工数行(時間)": "時間",
+                "工数1時間当たり純売上高": "円",
+                "工数1時間当たり営業利益": "円",
+                "工数行(h:mm:ss)": "h:mm:ss",
+            }
+            pszUnit: str = objUnitsMap.get(pszName, "")
+            iSingleUnitIndex: int = iBlankColumnIndex - 1
+            iCumulativeUnitIndex: int = iBlankColumnIndex + 3
+            if 0 <= iSingleUnitIndex < len(objRow):
+                objRow[iSingleUnitIndex] = pszUnit
+            if 0 <= iCumulativeUnitIndex < len(objRow):
+                objRow[iCumulativeUnitIndex] = pszUnit
+
+        if (
+            iMaterialsIndex >= 0
+            and iLaborIndex >= 0
+            and iMaterialsIndex < iRowIndex < iLaborIndex
+        ):
+            if pszName != "":
+                objRow[0] = f"　　{pszName}"
+            if iCumulativeNameIndex < len(objRow) and objRow[iCumulativeNameIndex] != "":
+                objRow[iCumulativeNameIndex] = f"　　{objRow[iCumulativeNameIndex]}"
+
+        if (
+            iOutsourceIndex >= 0
+            and iManufacturingIndex >= 0
+            and iOutsourceIndex < iRowIndex < iManufacturingIndex
+        ):
+            if pszName != "":
+                objRow[0] = f"　　{pszName}"
+            if iCumulativeNameIndex < len(objRow) and objRow[iCumulativeNameIndex] != "":
+                objRow[iCumulativeNameIndex] = f"　　{objRow[iCumulativeNameIndex]}"
+
+        objOutputRows[iRowIndex] = objRow
 
     return objOutputRows
 
@@ -2599,9 +2717,11 @@ def create_step0007_pl_cr(
         pszStep0008Directory: str = os.path.join(os.getcwd(), "PJ_Summary_step0008_Project")
         pszStep0009Directory: str = os.path.join(os.getcwd(), "PJ_Summary_step0009_Project")
         pszStep0010Directory: str = os.path.join(os.getcwd(), "PJ_Summary_step0010_Project")
+        pszStep0011Directory: str = os.path.join(os.getcwd(), "PJ_Summary_step0011_Project")
         os.makedirs(pszStep0008Directory, exist_ok=True)
         os.makedirs(pszStep0009Directory, exist_ok=True)
         os.makedirs(pszStep0010Directory, exist_ok=True)
+        os.makedirs(pszStep0011Directory, exist_ok=True)
         objSingleHeaderRow: List[str] = objSingleFinalRows[0]
         objCumulativeHeaderRow: List[str] = objCumulativeFinalRows[0]
         iMaxColumns: int = max(len(objSingleHeaderRow), len(objCumulativeHeaderRow))
@@ -2645,6 +2765,10 @@ def create_step0007_pl_cr(
                     pszStep0010Path = os.path.join(pszStep0010Directory, pszStep0010Name)
                     objStep0010Rows = build_step0010_rows(objSingleRatioRows, objCumulativeRatioRows)
                     write_tsv_rows(pszStep0010Path, objStep0010Rows)
+                    pszStep0011Name = f"0003_PJサマリ_step0011_単・累計_{pszColumnName}.tsv"
+                    pszStep0011Path = os.path.join(pszStep0011Directory, pszStep0011Name)
+                    objStep0011Rows = build_step0011_rows(objStep0010Rows)
+                    write_tsv_rows(pszStep0011Path, objStep0011Rows)
 
     move_files_to_temp(
         [
@@ -3281,10 +3405,20 @@ def create_pj_summary(
     write_tsv_rows(pszStep0005Path, objStep0005Rows)
     pszStep0006Path: str = os.path.join(
         pszDirectory,
-        f"0004_PJサマリ_step0006_単・累_損益計算書_{iEndYear}年{pszEndMonth}月.tsv",
+        (
+            "0004_PJサマリ_step0006_単・累_損益計算書_"
+            f"{objStart[0]}年{pszSummaryStartMonth}月-"
+            f"{objEnd[0]}年{pszSummaryEndMonth}月.tsv"
+        ),
     )
     objStep0006Rows = build_step0006_rows_for_summary(objStep0005Rows)
     write_tsv_rows(pszStep0006Path, objStep0006Rows)
+    if objStart != objEnd:
+        insert_step0006_rows_into_company_summary_excel(
+            objStep0006Rows,
+            objStart,
+            objEnd,
+        )
 
     objSingleOutputRows: List[List[str]] = []
     for objRow in objSingleRows:
