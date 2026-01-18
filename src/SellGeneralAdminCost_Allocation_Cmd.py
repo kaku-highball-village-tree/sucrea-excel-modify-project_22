@@ -1520,6 +1520,57 @@ def build_step0010_rows(
     return objOutputRows
 
 
+def build_step0011_rows(objRows: List[List[str]]) -> List[List[str]]:
+    if not objRows:
+        return []
+
+    objOutputRows: List[List[str]] = [list(objRow) for objRow in objRows]
+    iBlankColumnIndex: int = -1
+    for objRow in objOutputRows:
+        if "" in objRow:
+            iBlankColumnIndex = objRow.index("")
+            break
+    if iBlankColumnIndex < 0:
+        return objOutputRows
+
+    iCumulativeNameIndex: int = iBlankColumnIndex + 1
+    iMaterialsIndex: int = find_row_index_by_name(objOutputRows, "材料費")
+    iLaborIndex: int = find_row_index_by_name(objOutputRows, "労務費")
+    iOutsourceIndex: int = find_row_index_by_name(objOutputRows, "外注加工費")
+    iManufacturingIndex: int = find_row_index_by_name(objOutputRows, "製造経費")
+
+    for iRowIndex, objRow in enumerate(objOutputRows):
+        pszName: str = objRow[0] if objRow else ""
+        if pszName == "純売上高" and iBlankColumnIndex < len(objRow):
+            objRow[iBlankColumnIndex] = "損益計算書"
+        if pszName == "材料費" and iBlankColumnIndex < len(objRow):
+            objRow[iBlankColumnIndex] = "製造原価報告書"
+
+        if (
+            iMaterialsIndex >= 0
+            and iLaborIndex >= 0
+            and iMaterialsIndex < iRowIndex < iLaborIndex
+        ):
+            if pszName != "":
+                objRow[0] = f"　　{pszName}"
+            if iCumulativeNameIndex < len(objRow) and objRow[iCumulativeNameIndex] != "":
+                objRow[iCumulativeNameIndex] = f"　　{objRow[iCumulativeNameIndex]}"
+
+        if (
+            iOutsourceIndex >= 0
+            and iManufacturingIndex >= 0
+            and iOutsourceIndex < iRowIndex < iManufacturingIndex
+        ):
+            if pszName != "":
+                objRow[0] = f"　　{pszName}"
+            if iCumulativeNameIndex < len(objRow) and objRow[iCumulativeNameIndex] != "":
+                objRow[iCumulativeNameIndex] = f"　　{objRow[iCumulativeNameIndex]}"
+
+        objOutputRows[iRowIndex] = objRow
+
+    return objOutputRows
+
+
 def append_gross_margin_column(objRows: List[List[str]]) -> List[List[str]]:
     if not objRows:
         return []
@@ -2643,9 +2694,11 @@ def create_step0007_pl_cr(
         pszStep0008Directory: str = os.path.join(os.getcwd(), "PJ_Summary_step0008_Project")
         pszStep0009Directory: str = os.path.join(os.getcwd(), "PJ_Summary_step0009_Project")
         pszStep0010Directory: str = os.path.join(os.getcwd(), "PJ_Summary_step0010_Project")
+        pszStep0011Directory: str = os.path.join(os.getcwd(), "PJ_Summary_step0011_Project")
         os.makedirs(pszStep0008Directory, exist_ok=True)
         os.makedirs(pszStep0009Directory, exist_ok=True)
         os.makedirs(pszStep0010Directory, exist_ok=True)
+        os.makedirs(pszStep0011Directory, exist_ok=True)
         objSingleHeaderRow: List[str] = objSingleFinalRows[0]
         objCumulativeHeaderRow: List[str] = objCumulativeFinalRows[0]
         iMaxColumns: int = max(len(objSingleHeaderRow), len(objCumulativeHeaderRow))
@@ -2689,6 +2742,10 @@ def create_step0007_pl_cr(
                     pszStep0010Path = os.path.join(pszStep0010Directory, pszStep0010Name)
                     objStep0010Rows = build_step0010_rows(objSingleRatioRows, objCumulativeRatioRows)
                     write_tsv_rows(pszStep0010Path, objStep0010Rows)
+                    pszStep0011Name = f"0003_PJサマリ_step0011_単・累計_{pszColumnName}.tsv"
+                    pszStep0011Path = os.path.join(pszStep0011Directory, pszStep0011Name)
+                    objStep0011Rows = build_step0011_rows(objStep0010Rows)
+                    write_tsv_rows(pszStep0011Path, objStep0011Rows)
 
     move_files_to_temp(
         [
