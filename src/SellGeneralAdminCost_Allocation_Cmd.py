@@ -4148,6 +4148,7 @@ def create_pj_summary(
         )
         write_tsv_rows(pszSingleStep0004Path, objSingleStep0004Rows)
         update_step0005_headquarters_company(pszSingleStep0004Path, pszOrgTablePath)
+        objSingleStep0004Rows = read_tsv_rows(pszSingleStep0004Path)
     if os.path.isfile(pszCumulativeStep0003Path):
         objCumulativeStep0004Rows = insert_accounting_company_column(
             read_tsv_rows(pszCumulativeStep0003Path),
@@ -4163,6 +4164,7 @@ def create_pj_summary(
         )
         write_tsv_rows(pszCumulativeStep0004Path, objCumulativeStep0004Rows)
         update_step0005_headquarters_company(pszCumulativeStep0004Path, pszOrgTablePath)
+        objCumulativeStep0004Rows = read_tsv_rows(pszCumulativeStep0004Path)
 
     objSingleStep0005Rows: Optional[List[List[str]]] = None
     objCumulativeStep0005Rows: Optional[List[List[str]]] = None
