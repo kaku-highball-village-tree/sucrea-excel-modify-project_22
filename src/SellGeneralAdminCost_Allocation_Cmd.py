@@ -2634,6 +2634,29 @@ def build_step0006_rows_for_summary(objRows: List[List[str]]) -> List[List[str]]
     return [objLabelRow] + [list(objRow) for objRow in objRows]
 
 
+def build_step0007_rows_from_step0006_path(pszStep0006Path: str) -> None:
+    if not os.path.isfile(pszStep0006Path):
+        return
+
+    objRows = read_tsv_rows(pszStep0006Path)
+    if not objRows:
+        return
+
+    iColumnCount: int = max(len(objRow) for objRow in objRows)
+    objHeaderRow: List[str] = ["単／累"]
+    for iColumnIndex in range(1, iColumnCount):
+        if iColumnIndex % 2 == 1:
+            objHeaderRow.append("単月")
+        else:
+            objHeaderRow.append("累計")
+
+    objOutputRows: List[List[str]] = [objHeaderRow]
+    objOutputRows.extend([list(objRow) for objRow in objRows])
+
+    pszStep0007Path: str = pszStep0006Path.replace("step0006_", "step0007_", 1)
+    write_tsv_rows(pszStep0007Path, objOutputRows)
+
+
 def filter_rows_by_names(
     objRows: List[List[str]],
     objTargetNames: List[str],
@@ -4148,6 +4171,7 @@ def create_pj_summary(
         )
         write_tsv_rows(pszSingleStep0004Path, objSingleStep0004Rows)
         update_step0005_headquarters_company(pszSingleStep0004Path, pszOrgTablePath)
+        objSingleStep0004Rows = read_tsv_rows(pszSingleStep0004Path)
     if os.path.isfile(pszCumulativeStep0003Path):
         objCumulativeStep0004Rows = insert_accounting_company_column(
             read_tsv_rows(pszCumulativeStep0003Path),
@@ -4163,6 +4187,7 @@ def create_pj_summary(
         )
         write_tsv_rows(pszCumulativeStep0004Path, objCumulativeStep0004Rows)
         update_step0005_headquarters_company(pszCumulativeStep0004Path, pszOrgTablePath)
+        objCumulativeStep0004Rows = read_tsv_rows(pszCumulativeStep0004Path)
 
     objSingleStep0005Rows: Optional[List[List[str]]] = None
     objCumulativeStep0005Rows: Optional[List[List[str]]] = None
@@ -4212,91 +4237,7 @@ def create_pj_summary(
             objSingleStep0005Rows,
             objCumulativeStep0005Rows,
         )
-
-    objSingleStep0003Rows: List[List[str]] = append_gross_margin_column(objSingleStep0002Rows)
-    objCumulativeStep0003Rows: List[List[str]] = append_gross_margin_column(
-        objCumulativeStep0002Rows
-    )
-    pszSingleStep0003Path: str = os.path.join(
-        pszDirectory,
-        "0001_PJサマリ_step0007_単月_損益計算書.tsv",
-    )
-    pszCumulativeStep0003Path: str = os.path.join(
-        pszDirectory,
-        "0001_PJサマリ_step0007_累計_損益計算書.tsv",
-    )
-    write_tsv_rows(pszSingleStep0003Path, objSingleStep0003Rows)
-    write_tsv_rows(pszCumulativeStep0003Path, objCumulativeStep0003Rows)
-
-    if len(objSingleStep0003Rows) != len(objCumulativeStep0003Rows):
-        print("Error: step0007 row count mismatch between single and cumulative.")
-        return
-
-    for iRowIndex, objRow in enumerate(objSingleStep0003Rows):
-        pszSingleKey: str = objRow[0] if objRow else ""
-        objCumulativeRow: List[str] = objCumulativeStep0003Rows[iRowIndex]
-        pszCumulativeKey: str = objCumulativeRow[0] if objCumulativeRow else ""
-        if pszSingleKey != pszCumulativeKey:
-            print(
-                "Error: step0007 first-column mismatch at row "
-                + str(iRowIndex)
-                + ". single="
-                + pszSingleKey
-                + " cumulative="
-                + pszCumulativeKey
-            )
-            return
-
-    objStep0004Rows: List[List[str]] = []
-    for iRowIndex, objRow in enumerate(objSingleStep0003Rows):
-        objCumulativeRow = objCumulativeStep0003Rows[iRowIndex]
-        if iRowIndex == 0:
-            objHeader: List[str] = [objRow[0] if objRow else ""]
-            iMaxColumns: int = max(len(objRow), len(objCumulativeRow))
-            for iColumnIndex in range(1, iMaxColumns):
-                pszSingleHeader: str = objRow[iColumnIndex] if iColumnIndex < len(objRow) else ""
-                pszCumulativeHeader: str = (
-                    objCumulativeRow[iColumnIndex] if iColumnIndex < len(objCumulativeRow) else ""
-                )
-                objHeader.append(pszSingleHeader)
-                objHeader.append(pszCumulativeHeader)
-            objStep0004Rows.append(objHeader)
-            continue
-
-        objOutputRow: List[str] = [objRow[0] if objRow else ""]
-        iMaxColumns = max(len(objRow), len(objCumulativeRow))
-        for iColumnIndex in range(1, iMaxColumns):
-            objOutputRow.append(objRow[iColumnIndex] if iColumnIndex < len(objRow) else "")
-            objOutputRow.append(
-                objCumulativeRow[iColumnIndex] if iColumnIndex < len(objCumulativeRow) else ""
-            )
-        objStep0004Rows.append(objOutputRow)
-
-    pszStep0004Path: str = os.path.join(
-        pszDirectory,
-        "0001_PJサマリ_step0008_単月・累計_損益計算書.tsv",
-    )
-    write_tsv_rows(pszStep0004Path, objStep0004Rows)
-
-    if not objStep0004Rows:
-        return
-
-    iStep0004ColumnCount: int = max(len(objRow) for objRow in objStep0004Rows)
-    objStep0005Rows: List[List[str]] = []
-    objHeaderRow: List[str] = ["単／累"]
-    for iColumnIndex in range(1, iStep0004ColumnCount):
-        if iColumnIndex % 2 == 1:
-            objHeaderRow.append("単月")
-        else:
-            objHeaderRow.append("累計")
-    objStep0005Rows.append(objHeaderRow)
-    objStep0005Rows.extend(objStep0004Rows)
-
-    pszStep0005Path: str = os.path.join(
-        pszDirectory,
-        "0001_PJサマリ_step0009_単月・累計_損益計算書.tsv",
-    )
-    write_tsv_rows(pszStep0005Path, objStep0005Rows)
+        build_step0007_rows_from_step0006_path(pszStep0006Path)
 
     objGrossProfitColumns: List[str] = ["科目名", "売上総利益", "純売上高"]
     objGrossProfitSingleRows: List[List[str]] = filter_rows_by_columns(
