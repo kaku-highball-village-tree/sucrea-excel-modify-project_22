@@ -2199,7 +2199,7 @@ def insert_accounting_group_column(
         pszProjectName: str = objRow[0].strip() if objRow else ""
         if pszProjectName == "科目名":
             objOutputRows.append(
-                [pszProjectName, "計上グループ"] + (objRow[1:] if len(objRow) > 1 else [])
+                ["計上グループ", pszProjectName] + (objRow[1:] if len(objRow) > 1 else [])
             )
             continue
 
@@ -2213,7 +2213,7 @@ def insert_accounting_group_column(
                 pszGroupName = objGroupMap.get(pszPrefix, "")
 
         objOutputRows.append(
-            [pszProjectName, pszGroupName] + (objRow[1:] if len(objRow) > 1 else [])
+            [pszGroupName, pszProjectName] + (objRow[1:] if len(objRow) > 1 else [])
         )
 
     return objOutputRows
