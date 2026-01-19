@@ -2220,10 +2220,12 @@ def insert_accounting_group_column(
 
 def get_headquarters_group_from_org_table(pszOrgTablePath: str) -> str:
     if not os.path.isfile(pszOrgTablePath):
+        print(f"Warning: org table not found: {pszOrgTablePath}")
         return ""
 
     objRows = read_tsv_rows(pszOrgTablePath)
     if not objRows:
+        print(f"Warning: org table empty: {pszOrgTablePath}")
         return ""
 
     objHeader = objRows[0]
@@ -2251,6 +2253,7 @@ def get_headquarters_group_from_org_table(pszOrgTablePath: str) -> str:
             continue
         return objRow[iGroupIndex].strip()
 
+    print("Warning: 本部 row not found in org table.")
     return ""
 
 
