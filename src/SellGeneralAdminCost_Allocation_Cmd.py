@@ -2003,6 +2003,38 @@ def filter_rows_by_columns(
     return objFilteredRows
 
 
+def move_column_before(
+    objRows: List[List[str]],
+    pszMoveName: str,
+    pszBeforeName: str,
+) -> List[List[str]]:
+    if not objRows:
+        return objRows
+
+    objHeader = objRows[0]
+    iMoveIndex = find_column_index(objHeader, pszMoveName)
+    iBeforeIndex = find_column_index(objHeader, pszBeforeName)
+    if iMoveIndex < 0 or iBeforeIndex < 0 or iMoveIndex == iBeforeIndex:
+        return objRows
+
+    objOutputRows: List[List[str]] = []
+    for objRow in objRows:
+        objRowValues = list(objRow)
+        pszValue = objRowValues.pop(iMoveIndex) if iMoveIndex < len(objRowValues) else ""
+        if iMoveIndex < iBeforeIndex:
+            iBeforeIndexAdjusted = iBeforeIndex - 1
+        else:
+            iBeforeIndexAdjusted = iBeforeIndex
+        if iBeforeIndexAdjusted < 0:
+            iBeforeIndexAdjusted = 0
+        if iBeforeIndexAdjusted > len(objRowValues):
+            iBeforeIndexAdjusted = len(objRowValues)
+        objRowValues.insert(iBeforeIndexAdjusted, pszValue)
+        objOutputRows.append(objRowValues)
+
+    return objOutputRows
+
+
 def combine_company_sg_admin_columns(
     objRows: List[List[str]],
 ) -> List[List[str]]:
@@ -3780,9 +3812,21 @@ def create_pj_summary(
         objSingleOutputRows,
         objTargetColumns,
     )
+    objSingleStep0002Rows = combine_company_sg_admin_columns(objSingleStep0002Rows)
+    objSingleStep0002Rows = move_column_before(
+        objSingleStep0002Rows,
+        "カンパニー販管費",
+        "配賦販管費",
+    )
     objCumulativeStep0002Rows: List[List[str]] = filter_rows_by_columns(
         objCumulativeOutputRows,
         objTargetColumns,
+    )
+    objCumulativeStep0002Rows = combine_company_sg_admin_columns(objCumulativeStep0002Rows)
+    objCumulativeStep0002Rows = move_column_before(
+        objCumulativeStep0002Rows,
+        "カンパニー販管費",
+        "配賦販管費",
     )
     pszSingleStep0002Path: str = os.path.join(
         pszDirectory,
