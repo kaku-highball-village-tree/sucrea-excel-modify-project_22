@@ -2204,13 +2204,10 @@ def insert_accounting_group_column(
             continue
 
         pszGroupName: str = ""
-        if pszProjectName == "本部":
-            pszGroupName = "本部"
-        else:
-            objMatch = re.match(r"^(P\d{5}_|[A-OQ-Z]\d{3}_)", pszProjectName)
-            if objMatch is not None:
-                pszPrefix = objMatch.group(1)
-                pszGroupName = objGroupMap.get(pszPrefix, "")
+        objMatch = re.match(r"^(P\d{5}_|[A-OQ-Z]\d{3}_)", pszProjectName)
+        if objMatch is not None:
+            pszPrefix = objMatch.group(1)
+            pszGroupName = objGroupMap.get(pszPrefix, "")
 
         objOutputRows.append(
             [pszGroupName, pszProjectName] + (objRow[1:] if len(objRow) > 1 else [])
