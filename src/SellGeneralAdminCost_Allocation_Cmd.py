@@ -1632,6 +1632,41 @@ def append_gross_margin_column(objRows: List[List[str]]) -> List[List[str]]:
     return objOutputRows
 
 
+def write_step0006_pj_summary(
+    pszOutputPath: str,
+    objSingleRows: List[List[str]],
+    objCumulativeRows: List[List[str]],
+) -> None:
+    objStep0004Rows: List[List[str]] = []
+    for iRowIndex, objRow in enumerate(objSingleRows):
+        objCumulativeRow = objCumulativeRows[iRowIndex] if iRowIndex < len(objCumulativeRows) else []
+        if iRowIndex == 0:
+            objHeader: List[str] = [objRow[0] if objRow else ""]
+            iMaxColumns: int = max(len(objRow), len(objCumulativeRow))
+            for iColumnIndex in range(1, iMaxColumns):
+                pszSingleHeader: str = objRow[iColumnIndex] if iColumnIndex < len(objRow) else ""
+                pszCumulativeHeader: str = (
+                    objCumulativeRow[iColumnIndex] if iColumnIndex < len(objCumulativeRow) else ""
+                )
+                objHeader.append(pszSingleHeader)
+                objHeader.append(pszCumulativeHeader)
+            objStep0004Rows.append(objHeader)
+            continue
+
+        objOutputRow: List[str] = [objRow[0] if objRow else ""]
+        iMaxColumns = max(len(objRow), len(objCumulativeRow))
+        for iColumnIndex in range(1, iMaxColumns):
+            objOutputRow.append(objRow[iColumnIndex] if iColumnIndex < len(objRow) else "")
+            objOutputRow.append(
+                objCumulativeRow[iColumnIndex] if iColumnIndex < len(objCumulativeRow) else ""
+            )
+        objStep0004Rows.append(objOutputRow)
+
+    write_tsv_rows(pszOutputPath, objStep0004Rows)
+    if not objStep0004Rows:
+        return
+
+
 def insert_ratio_rows_for_vertical(
     objRows: List[List[str]],
 ) -> List[List[str]]:
@@ -4077,6 +4112,8 @@ def create_pj_summary(
         write_tsv_rows(pszCumulativeStep0004Path, objCumulativeStep0004Rows)
         update_step0005_headquarters_company(pszCumulativeStep0004Path, pszOrgTablePath)
 
+    objSingleStep0005Rows: Optional[List[List[str]]] = None
+    objCumulativeStep0005Rows: Optional[List[List[str]]] = None
     if objSingleStep0004Rows is not None:
         objSingleStep0005Rows = append_gross_margin_column(objSingleStep0004Rows)
         pszSingleStep0005Path: str = os.path.join(
@@ -4096,6 +4133,25 @@ def create_pj_summary(
             ),
         )
         write_tsv_rows(pszCumulativeStep0005Path, objCumulativeStep0005Rows)
+
+    if (
+        objStart != objEnd
+        and objSingleStep0005Rows is not None
+        and objCumulativeStep0005Rows is not None
+    ):
+        pszStep0006Path: str = os.path.join(
+            pszDirectory,
+            (
+                "0001_PJサマリ_step0006_"
+                f"{objStart[0]}年{pszSummaryStartMonth}月-"
+                f"{objEnd[0]}年{pszSummaryEndMonth}月_単月・累計_損益計算書.tsv"
+            ),
+        )
+        write_step0006_pj_summary(
+            pszStep0006Path,
+            objSingleStep0005Rows,
+            objCumulativeStep0005Rows,
+        )
 
     objSingleStep0003Rows: List[List[str]] = append_gross_margin_column(objSingleStep0002Rows)
     objCumulativeStep0003Rows: List[List[str]] = append_gross_margin_column(
