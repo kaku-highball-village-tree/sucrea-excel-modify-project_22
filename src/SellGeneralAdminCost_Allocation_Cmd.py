@@ -2257,6 +2257,66 @@ def get_headquarters_group_from_org_table(pszOrgTablePath: str) -> str:
     return ""
 
 
+def insert_accounting_company_column(
+    objRows: List[List[str]],
+    objCompanyMap: Dict[str, str],
+) -> List[List[str]]:
+    objOutputRows: List[List[str]] = []
+    for objRow in objRows:
+        pszProjectName: str = objRow[1].strip() if len(objRow) > 1 else ""
+        if pszProjectName == "科目名":
+            objOutputRows.append(
+                ["計上カンパニー"] + (objRow if objRow else [])
+            )
+            continue
+
+        pszCompanyName: str = ""
+        objMatch = re.match(r"^(P\d{5}_|[A-OQ-Z]\d{3}_)", pszProjectName)
+        if objMatch is not None:
+            pszPrefix = objMatch.group(1)
+            pszCompanyName = objCompanyMap.get(pszPrefix, "")
+
+        objOutputRows.append([pszCompanyName] + (objRow if objRow else []))
+
+    return objOutputRows
+
+
+def get_headquarters_company_from_org_table(pszOrgTablePath: str) -> str:
+    if not os.path.isfile(pszOrgTablePath):
+        return ""
+
+    objRows = read_tsv_rows(pszOrgTablePath)
+    if not objRows:
+        return ""
+
+    objHeader = objRows[0]
+    iCodeIndex = find_column_index(objHeader, "PJコード")
+    objCompanyColumnCandidates = ["計上カンパニー名", "計上カンパニー"]
+    iCompanyIndex = -1
+    for pszColumn in objCompanyColumnCandidates:
+        iCompanyIndex = find_column_index(objHeader, pszColumn)
+        if iCompanyIndex >= 0:
+            break
+
+    iStartIndex = 0
+    if iCodeIndex >= 0:
+        if iCompanyIndex < 0:
+            iCompanyIndex = iCodeIndex + 2
+        iStartIndex = 1
+    else:
+        iCodeIndex = 2
+        iCompanyIndex = 3
+
+    for objRow in objRows[iStartIndex:]:
+        if iCodeIndex >= len(objRow) or iCompanyIndex >= len(objRow):
+            continue
+        if objRow[iCodeIndex].strip() != "本部":
+            continue
+        return objRow[iCompanyIndex].strip()
+
+    return ""
+
+
 def update_step0003_headquarters_group(
     pszStep0003Path: str,
     pszOrgTablePath: str,
@@ -2280,6 +2340,31 @@ def update_step0003_headquarters_group(
         objOutputRows.append(objRow)
 
     write_tsv_rows(pszStep0003Path, objOutputRows)
+
+
+def update_step0005_headquarters_company(
+    pszStep0005Path: str,
+    pszOrgTablePath: str,
+) -> None:
+    if not os.path.isfile(pszStep0005Path):
+        return
+
+    pszCompanyName = get_headquarters_company_from_org_table(pszOrgTablePath)
+    if pszCompanyName == "":
+        return
+
+    objRows = read_tsv_rows(pszStep0005Path)
+    if not objRows:
+        return
+
+    objOutputRows: List[List[str]] = []
+    for objRow in objRows:
+        if len(objRow) >= 3 and objRow[2].strip() == "本部":
+            objRow = list(objRow)
+            objRow[0] = pszCompanyName
+        objOutputRows.append(objRow)
+
+    write_tsv_rows(pszStep0005Path, objOutputRows)
 
 
 def build_step0003_rows(
@@ -3961,6 +4046,46 @@ def create_pj_summary(
     write_tsv_rows(pszCumulativeStep0003Path, objCumulativeStep0003GroupRows)
     update_step0003_headquarters_group(pszSingleStep0003Path, pszOrgTablePath)
     update_step0003_headquarters_group(pszCumulativeStep0003Path, pszOrgTablePath)
+
+    objCompanyMap = load_org_table_company_map(pszOrgTablePath)
+    pszSingleStep0004Path: str = os.path.join(
+        pszDirectory,
+        f"0001_PJサマリ_step0004_{iEndYear}年{pszEndMonth}月_単月_損益計算書.tsv",
+    )
+    pszCumulativeStep0004Path: str = os.path.join(
+        pszDirectory,
+        (
+            "0001_PJサマリ_step0004_"
+            f"{objStart[0]}年{pszSummaryStartMonth}月-"
+            f"{objEnd[0]}年{pszSummaryEndMonth}月_累計_損益計算書.tsv"
+        ),
+    )
+    if os.path.isfile(pszSingleStep0004Path):
+        objSingleStep0005Rows = insert_accounting_company_column(
+            read_tsv_rows(pszSingleStep0004Path),
+            objCompanyMap,
+        )
+        pszSingleStep0005Path: str = os.path.join(
+            pszDirectory,
+            f"0001_PJサマリ_step0005_{iEndYear}年{pszEndMonth}月_単月_損益計算書.tsv",
+        )
+        write_tsv_rows(pszSingleStep0005Path, objSingleStep0005Rows)
+        update_step0005_headquarters_company(pszSingleStep0005Path, pszOrgTablePath)
+    if os.path.isfile(pszCumulativeStep0004Path):
+        objCumulativeStep0005Rows = insert_accounting_company_column(
+            read_tsv_rows(pszCumulativeStep0004Path),
+            objCompanyMap,
+        )
+        pszCumulativeStep0005Path: str = os.path.join(
+            pszDirectory,
+            (
+                "0001_PJサマリ_step0005_"
+                f"{objStart[0]}年{pszSummaryStartMonth}月-"
+                f"{objEnd[0]}年{pszSummaryEndMonth}月_累計_損益計算書.tsv"
+            ),
+        )
+        write_tsv_rows(pszCumulativeStep0005Path, objCumulativeStep0005Rows)
+        update_step0005_headquarters_company(pszCumulativeStep0005Path, pszOrgTablePath)
 
     objSingleStep0003Rows: List[List[str]] = append_gross_margin_column(objSingleStep0002Rows)
     objCumulativeStep0003Rows: List[List[str]] = append_gross_margin_column(
