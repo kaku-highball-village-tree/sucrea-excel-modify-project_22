@@ -4047,52 +4047,33 @@ def create_pj_summary(
     update_step0003_headquarters_group(pszSingleStep0003Path, pszOrgTablePath)
     update_step0003_headquarters_group(pszCumulativeStep0003Path, pszOrgTablePath)
 
-    pszSingleStep0004Path: str = os.path.join(
-        pszDirectory,
-        f"0001_PJサマリ_step0004_{iEndYear}年{pszEndMonth}月_単月_損益計算書.tsv",
-    )
-    pszCumulativeStep0004Path: str = os.path.join(
-        pszDirectory,
-        (
-            "0001_PJサマリ_step0004_"
-            f"{objStart[0]}年{pszSummaryStartMonth}月-"
-            f"{objEnd[0]}年{pszSummaryEndMonth}月_累計_損益計算書.tsv"
-        ),
-    )
-    if os.path.isfile(pszSingleStep0003Path):
-        objSingleStep0004Rows = read_tsv_rows(pszSingleStep0003Path)
-        write_tsv_rows(pszSingleStep0004Path, objSingleStep0004Rows)
-    if os.path.isfile(pszCumulativeStep0003Path):
-        objCumulativeStep0004Rows = read_tsv_rows(pszCumulativeStep0003Path)
-        write_tsv_rows(pszCumulativeStep0004Path, objCumulativeStep0004Rows)
-
     objCompanyMap = load_org_table_company_map(pszOrgTablePath)
-    if os.path.isfile(pszSingleStep0004Path):
-        objSingleStep0005Rows = insert_accounting_company_column(
-            read_tsv_rows(pszSingleStep0004Path),
+    if os.path.isfile(pszSingleStep0003Path):
+        objSingleStep0004Rows = insert_accounting_company_column(
+            read_tsv_rows(pszSingleStep0003Path),
             objCompanyMap,
         )
-        pszSingleStep0005Path: str = os.path.join(
+        pszSingleStep0004Path: str = os.path.join(
             pszDirectory,
-            f"0001_PJサマリ_step0005_{iEndYear}年{pszEndMonth}月_単月_損益計算書.tsv",
+            f"0001_PJサマリ_step0004_{iEndYear}年{pszEndMonth}月_単月_損益計算書.tsv",
         )
-        write_tsv_rows(pszSingleStep0005Path, objSingleStep0005Rows)
-        update_step0005_headquarters_company(pszSingleStep0005Path, pszOrgTablePath)
-    if os.path.isfile(pszCumulativeStep0004Path):
-        objCumulativeStep0005Rows = insert_accounting_company_column(
-            read_tsv_rows(pszCumulativeStep0004Path),
+        write_tsv_rows(pszSingleStep0004Path, objSingleStep0004Rows)
+        update_step0005_headquarters_company(pszSingleStep0004Path, pszOrgTablePath)
+    if os.path.isfile(pszCumulativeStep0003Path):
+        objCumulativeStep0004Rows = insert_accounting_company_column(
+            read_tsv_rows(pszCumulativeStep0003Path),
             objCompanyMap,
         )
-        pszCumulativeStep0005Path: str = os.path.join(
+        pszCumulativeStep0004Path: str = os.path.join(
             pszDirectory,
             (
-                "0001_PJサマリ_step0005_"
+                "0001_PJサマリ_step0004_"
                 f"{objStart[0]}年{pszSummaryStartMonth}月-"
                 f"{objEnd[0]}年{pszSummaryEndMonth}月_累計_損益計算書.tsv"
             ),
         )
-        write_tsv_rows(pszCumulativeStep0005Path, objCumulativeStep0005Rows)
-        update_step0005_headquarters_company(pszCumulativeStep0005Path, pszOrgTablePath)
+        write_tsv_rows(pszCumulativeStep0004Path, objCumulativeStep0004Rows)
+        update_step0005_headquarters_company(pszCumulativeStep0004Path, pszOrgTablePath)
 
     objSingleStep0003Rows: List[List[str]] = append_gross_margin_column(objSingleStep0002Rows)
     objCumulativeStep0003Rows: List[List[str]] = append_gross_margin_column(
