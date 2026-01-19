@@ -2208,6 +2208,8 @@ def insert_accounting_group_column(
         if objMatch is not None:
             pszPrefix = objMatch.group(1)
             pszGroupName = objGroupMap.get(pszPrefix, "")
+        elif pszProjectName == "本部":
+            pszGroupName = objGroupMap.get("本部", "")
 
         objOutputRows.append(
             [pszGroupName, pszProjectName] + (objRow[1:] if len(objRow) > 1 else [])
