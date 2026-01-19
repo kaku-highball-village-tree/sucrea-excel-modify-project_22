@@ -295,6 +295,7 @@ def convert_org_table_tsv(objBaseDirectoryPath: Path) -> None:
             #             elif objMatchOther is not None:
             #                 objRow[1] = f"{objMatchOther.group(1)}_{objMatchOther.group(2)}"
             #         objOrgTableTsvWriter.writerow(objRow)
+            pass
     else:
         pszOrgTableError = f"Error: 管轄PJ表.csv が見つかりません。Path = {objOrgTableCsvPath}"
         print(pszOrgTableError)
