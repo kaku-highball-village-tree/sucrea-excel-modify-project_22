@@ -2373,6 +2373,37 @@ def get_headquarters_company_from_org_table(pszOrgTablePath: str) -> str:
     return ""
 
 
+def fill_headquarters_company_in_rows(
+    objRows: List[List[str]],
+    pszOrgTablePath: str,
+) -> List[List[str]]:
+    if not objRows:
+        return objRows
+
+    objHeader = objRows[0]
+    iCompanyIndex = find_column_index(objHeader, "計上カンパニー")
+    iGroupIndex = find_column_index(objHeader, "計上グループ")
+    if iCompanyIndex < 0 or iGroupIndex < 0:
+        return objRows
+
+    pszHeadquartersCompany = get_headquarters_company_from_org_table(pszOrgTablePath)
+    if pszHeadquartersCompany == "":
+        pszHeadquartersCompany = "本部"
+
+    objOutputRows: List[List[str]] = []
+    for iRowIndex, objRow in enumerate(objRows):
+        if iRowIndex == 0:
+            objOutputRows.append(list(objRow))
+            continue
+        objNewRow = list(objRow)
+        if iGroupIndex < len(objNewRow) and iCompanyIndex < len(objNewRow):
+            if objNewRow[iGroupIndex].strip() == "本部" and objNewRow[iCompanyIndex].strip() == "":
+                objNewRow[iCompanyIndex] = pszHeadquartersCompany
+        objOutputRows.append(objNewRow)
+
+    return objOutputRows
+
+
 def update_step0003_headquarters_group(
     pszStep0003Path: str,
     pszOrgTablePath: str,
@@ -4137,6 +4168,10 @@ def create_pj_summary(
     objCumulativeStep0005Rows: Optional[List[List[str]]] = None
     if objSingleStep0004Rows is not None:
         objSingleStep0005Rows = append_gross_margin_column(objSingleStep0004Rows)
+        objSingleStep0005Rows = fill_headquarters_company_in_rows(
+            objSingleStep0005Rows,
+            pszOrgTablePath,
+        )
         pszSingleStep0005Path: str = os.path.join(
             pszDirectory,
             f"0001_PJサマリ_step0005_{iEndYear}年{pszEndMonth}月_単月_損益計算書.tsv",
@@ -4145,6 +4180,10 @@ def create_pj_summary(
 
     if objCumulativeStep0004Rows is not None:
         objCumulativeStep0005Rows = append_gross_margin_column(objCumulativeStep0004Rows)
+        objCumulativeStep0005Rows = fill_headquarters_company_in_rows(
+            objCumulativeStep0005Rows,
+            pszOrgTablePath,
+        )
         pszCumulativeStep0005Path: str = os.path.join(
             pszDirectory,
             (
