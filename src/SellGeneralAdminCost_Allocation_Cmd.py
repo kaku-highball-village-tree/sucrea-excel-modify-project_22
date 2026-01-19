@@ -1637,6 +1637,23 @@ def write_step0006_pj_summary(
     objSingleRows: List[List[str]],
     objCumulativeRows: List[List[str]],
 ) -> None:
+    objSingleHeader: List[str] = objSingleRows[0] if objSingleRows else []
+    objCumulativeHeader: List[str] = objCumulativeRows[0] if objCumulativeRows else []
+    iMaxColumns: int = max(len(objSingleHeader), len(objCumulativeHeader))
+    objSingleOnlyColumnNames = {"計上カンパニー", "計上グループ", "科目名"}
+    objSingleOnlyIndices = {
+        iColumnIndex
+        for iColumnIndex in range(1, iMaxColumns)
+        if (
+            (objSingleHeader[iColumnIndex] if iColumnIndex < len(objSingleHeader) else "")
+            or (
+                objCumulativeHeader[iColumnIndex]
+                if iColumnIndex < len(objCumulativeHeader)
+                else ""
+            )
+        )
+        in objSingleOnlyColumnNames
+    }
     objStep0004Rows: List[List[str]] = []
     for iRowIndex, objRow in enumerate(objSingleRows):
         objCumulativeRow = objCumulativeRows[iRowIndex] if iRowIndex < len(objCumulativeRows) else []
@@ -1649,6 +1666,8 @@ def write_step0006_pj_summary(
                     objCumulativeRow[iColumnIndex] if iColumnIndex < len(objCumulativeRow) else ""
                 )
                 objHeader.append(pszSingleHeader)
+                if iColumnIndex in objSingleOnlyIndices:
+                    continue
                 objHeader.append(pszCumulativeHeader)
             objStep0004Rows.append(objHeader)
             continue
@@ -1657,6 +1676,8 @@ def write_step0006_pj_summary(
         iMaxColumns = max(len(objRow), len(objCumulativeRow))
         for iColumnIndex in range(1, iMaxColumns):
             objOutputRow.append(objRow[iColumnIndex] if iColumnIndex < len(objRow) else "")
+            if iColumnIndex in objSingleOnlyIndices:
+                continue
             objOutputRow.append(
                 objCumulativeRow[iColumnIndex] if iColumnIndex < len(objCumulativeRow) else ""
             )
