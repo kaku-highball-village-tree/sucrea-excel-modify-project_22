@@ -295,15 +295,7 @@ def convert_org_table_tsv(objBaseDirectoryPath: Path) -> None:
             #             elif objMatchOther is not None:
             #                 objRow[1] = f"{objMatchOther.group(1)}_{objMatchOther.group(2)}"
             #         objOrgTableTsvWriter.writerow(objRow)
-            # ●●の処理ここから
-            # 管轄PJ表_step0003.tsv を読み込み、同一内容をそのまま
-            # 管轄PJ表.tsv の名前で保存する。
-            # 仕様:
-            #   - 管轄PJ表.tsv は 管轄PJ表_step0003.tsv と完全に同一内容。
-            #   - 追加の正規化処理や add_project_code_prefix_step0003 の再適用は行わない。
-            # ●●の処理ここまで
-            if objOrgTableStep0003Path != objOrgTableTsvPath:
-                shutil.copyfile(objOrgTableStep0003Path, objOrgTableTsvPath)
+            pass
     else:
         pszOrgTableError = f"Error: 管轄PJ表.csv が見つかりません。Path = {objOrgTableCsvPath}"
         print(pszOrgTableError)
