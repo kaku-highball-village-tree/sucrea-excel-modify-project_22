@@ -2190,6 +2190,35 @@ def load_org_table_company_map(pszOrgTablePath: str) -> Dict[str, str]:
     return objCompanyMap
 
 
+def insert_accounting_group_column(
+    objRows: List[List[str]],
+    objGroupMap: Dict[str, str],
+) -> List[List[str]]:
+    objOutputRows: List[List[str]] = []
+    for objRow in objRows:
+        pszProjectName: str = objRow[0].strip() if objRow else ""
+        if pszProjectName == "科目名":
+            objOutputRows.append(
+                ["計上グループ", pszProjectName] + (objRow[1:] if len(objRow) > 1 else [])
+            )
+            continue
+
+        pszGroupName: str = ""
+        if pszProjectName == "本部":
+            pszGroupName = "本部"
+        else:
+            objMatch = re.match(r"^(P\d{5}_|[A-OQ-Z]\d{3}_)", pszProjectName)
+            if objMatch is not None:
+                pszPrefix = objMatch.group(1)
+                pszGroupName = objGroupMap.get(pszPrefix, "")
+
+        objOutputRows.append(
+            [pszGroupName, pszProjectName] + (objRow[1:] if len(objRow) > 1 else [])
+        )
+
+    return objOutputRows
+
+
 def build_step0003_rows(
     objRows: List[List[str]],
     objGroupMap: Dict[str, str],
@@ -3842,6 +3871,31 @@ def create_pj_summary(
     )
     write_tsv_rows(pszSingleStep0002Path, objSingleStep0002Rows)
     write_tsv_rows(pszCumulativeStep0002Path, objCumulativeStep0002Rows)
+
+    pszOrgTablePath: str = os.path.join(pszDirectory, "管轄PJ表.tsv")
+    objGroupMap = load_org_table_group_map(pszOrgTablePath)
+    objSingleStep0003GroupRows = insert_accounting_group_column(
+        objSingleStep0002Rows,
+        objGroupMap,
+    )
+    objCumulativeStep0003GroupRows = insert_accounting_group_column(
+        objCumulativeStep0002Rows,
+        objGroupMap,
+    )
+    pszSingleStep0003Path: str = os.path.join(
+        pszDirectory,
+        f"0001_PJサマリ_step0003_{iEndYear}年{pszEndMonth}月_単月_損益計算書.tsv",
+    )
+    pszCumulativeStep0003Path: str = os.path.join(
+        pszDirectory,
+        (
+            "0001_PJサマリ_step0003_"
+            f"{objStart[0]}年{pszSummaryStartMonth}月-"
+            f"{objEnd[0]}年{pszSummaryEndMonth}月_累計_損益計算書.tsv"
+        ),
+    )
+    write_tsv_rows(pszSingleStep0003Path, objSingleStep0003GroupRows)
+    write_tsv_rows(pszCumulativeStep0003Path, objCumulativeStep0003GroupRows)
 
     objSingleStep0003Rows: List[List[str]] = append_gross_margin_column(objSingleStep0002Rows)
     objCumulativeStep0003Rows: List[List[str]] = append_gross_margin_column(
