@@ -3960,6 +3960,7 @@ def create_pj_summary(
     write_tsv_rows(pszSingleStep0003Path, objSingleStep0003GroupRows)
     write_tsv_rows(pszCumulativeStep0003Path, objCumulativeStep0003GroupRows)
     update_step0003_headquarters_group(pszSingleStep0003Path, pszOrgTablePath)
+    update_step0003_headquarters_group(pszCumulativeStep0003Path, pszOrgTablePath)
 
     objSingleStep0003Rows: List[List[str]] = append_gross_margin_column(objSingleStep0002Rows)
     objCumulativeStep0003Rows: List[List[str]] = append_gross_margin_column(
