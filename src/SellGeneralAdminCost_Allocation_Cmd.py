@@ -2657,6 +2657,40 @@ def build_step0007_rows_from_step0006_path(pszStep0006Path: str) -> None:
     write_tsv_rows(pszStep0007Path, objOutputRows)
 
 
+def build_step0008_rows_from_step0007_path(pszStep0007Path: str) -> None:
+    if not os.path.isfile(pszStep0007Path):
+        return
+
+    objRows = read_tsv_rows(pszStep0007Path)
+    if len(objRows) < 2:
+        return
+
+    objHeaderRow: List[str] = objRows[1]
+    objTargetIndices: List[int] = [
+        iIndex for iIndex, pszValue in enumerate(objHeaderRow) if pszValue == "粗利益率"
+    ]
+    if not objTargetIndices:
+        return
+
+    objOutputRows: List[List[str]] = []
+    for iRowIndex, objRow in enumerate(objRows):
+        if iRowIndex < 2:
+            objOutputRows.append(list(objRow))
+            continue
+        objNewRow = list(objRow)
+        for iColumnIndex in objTargetIndices:
+            if iColumnIndex >= len(objNewRow):
+                continue
+            if objNewRow[iColumnIndex] == "'+∞":
+                objNewRow[iColumnIndex] = "＋∞"
+            elif objNewRow[iColumnIndex] == "'－∞":
+                objNewRow[iColumnIndex] = "－∞"
+        objOutputRows.append(objNewRow)
+
+    pszStep0008Path: str = pszStep0007Path.replace("step0007_", "step0008_", 1)
+    write_tsv_rows(pszStep0008Path, objOutputRows)
+
+
 def filter_rows_by_names(
     objRows: List[List[str]],
     objTargetNames: List[str],
@@ -4238,6 +4272,8 @@ def create_pj_summary(
             objCumulativeStep0005Rows,
         )
         build_step0007_rows_from_step0006_path(pszStep0006Path)
+        pszStep0007Path: str = pszStep0006Path.replace("step0006_", "step0007_", 1)
+        build_step0008_rows_from_step0007_path(pszStep0007Path)
 
     objGrossProfitColumns: List[str] = ["科目名", "売上総利益", "純売上高"]
     objGrossProfitSingleRows: List[List[str]] = filter_rows_by_columns(
