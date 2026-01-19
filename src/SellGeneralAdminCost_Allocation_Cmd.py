@@ -4047,7 +4047,6 @@ def create_pj_summary(
     update_step0003_headquarters_group(pszSingleStep0003Path, pszOrgTablePath)
     update_step0003_headquarters_group(pszCumulativeStep0003Path, pszOrgTablePath)
 
-    objCompanyMap = load_org_table_company_map(pszOrgTablePath)
     pszSingleStep0004Path: str = os.path.join(
         pszDirectory,
         f"0001_PJサマリ_step0004_{iEndYear}年{pszEndMonth}月_単月_損益計算書.tsv",
@@ -4060,6 +4059,14 @@ def create_pj_summary(
             f"{objEnd[0]}年{pszSummaryEndMonth}月_累計_損益計算書.tsv"
         ),
     )
+    if os.path.isfile(pszSingleStep0003Path):
+        objSingleStep0004Rows = read_tsv_rows(pszSingleStep0003Path)
+        write_tsv_rows(pszSingleStep0004Path, objSingleStep0004Rows)
+    if os.path.isfile(pszCumulativeStep0003Path):
+        objCumulativeStep0004Rows = read_tsv_rows(pszCumulativeStep0003Path)
+        write_tsv_rows(pszCumulativeStep0004Path, objCumulativeStep0004Rows)
+
+    objCompanyMap = load_org_table_company_map(pszOrgTablePath)
     if os.path.isfile(pszSingleStep0004Path):
         objSingleStep0005Rows = insert_accounting_company_column(
             read_tsv_rows(pszSingleStep0004Path),
