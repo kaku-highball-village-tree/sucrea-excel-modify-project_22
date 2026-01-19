@@ -2634,6 +2634,29 @@ def build_step0006_rows_for_summary(objRows: List[List[str]]) -> List[List[str]]
     return [objLabelRow] + [list(objRow) for objRow in objRows]
 
 
+def build_step0007_rows_from_step0006_path(pszStep0006Path: str) -> None:
+    if not os.path.isfile(pszStep0006Path):
+        return
+
+    objRows = read_tsv_rows(pszStep0006Path)
+    if not objRows:
+        return
+
+    iColumnCount: int = max(len(objRow) for objRow in objRows)
+    objHeaderRow: List[str] = ["単／累"]
+    for iColumnIndex in range(1, iColumnCount):
+        if iColumnIndex % 2 == 1:
+            objHeaderRow.append("単月")
+        else:
+            objHeaderRow.append("累計")
+
+    objOutputRows: List[List[str]] = [objHeaderRow]
+    objOutputRows.extend([list(objRow) for objRow in objRows])
+
+    pszStep0007Path: str = pszStep0006Path.replace("step0006_", "step0007_", 1)
+    write_tsv_rows(pszStep0007Path, objOutputRows)
+
+
 def filter_rows_by_names(
     objRows: List[List[str]],
     objTargetNames: List[str],
@@ -4214,6 +4237,7 @@ def create_pj_summary(
             objSingleStep0005Rows,
             objCumulativeStep0005Rows,
         )
+        build_step0007_rows_from_step0006_path(pszStep0006Path)
 
     objSingleStep0003Rows: List[List[str]] = append_gross_margin_column(objSingleStep0002Rows)
     objCumulativeStep0003Rows: List[List[str]] = append_gross_margin_column(
